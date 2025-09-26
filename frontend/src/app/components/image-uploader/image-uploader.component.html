@@ -1,0 +1,56 @@
+<div class="image-uploader">
+  <header class="header">
+    <h1 class="logo">OCR App</h1>
+    <p class="subtitle">Extract text from images with OCR</p>
+  </header>
+
+  <main class="main-content">
+    <div class="upload-section">
+      <div class="file-input-wrapper">
+        <input
+          type="file"
+          id="fileInput"
+          (change)="onFileSelected($event)"
+          accept="image/*"
+          class="file-input"
+          [disabled]="isProcessing"
+        />
+        <label for="fileInput" class="file-label">Choose Image</label>
+      </div>
+
+      <button
+        (click)="uploadImage()"
+        [disabled]="!selectedFile || isProcessing"
+        class="action-btn"
+      >
+        <span *ngIf="isProcessing" class="spinner"></span>
+        {{ isProcessing ? 'Processing...' : 'Process OCR' }}
+      </button>
+
+      <button
+        *ngIf="selectedFile || ocrResult || error"
+        (click)="resetForm()"
+        class="action-btn secondary"
+        [disabled]="isProcessing"
+      >
+        Reset
+      </button>
+    </div>
+
+    <div *ngIf="isProcessing" class="loading-overlay">
+      <div class="spinner"></div>
+      <p>Processing your image...</p>
+    </div>
+
+    <div *ngIf="error" class="error-message">
+      <span class="error-icon">!</span>
+      <span>{{ error }}</span>
+    </div>
+
+    <div *ngIf="ocrResult" class="result-section">
+      <h2>Extracted Text</h2>
+      <pre class="extracted-text">{{ getExtractedText() }}</pre>
+      <p>Average Confidence: {{ getConfidenceScore() }}%</p>
+    </div>
+  </main>
+</div>
