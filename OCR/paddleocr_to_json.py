@@ -46,116 +46,119 @@ class InsuranceDocumentExtractor:
         result = self.ocr.ocr(preprocessed_path)
         print("[DEBUG] PaddleOCR ocr() result:", result)
         text_blocks = []
-        total_confidence = 0
         detailed_result = []
-        # Defensive: check result structure and handle empty results
-        if isinstance(result, list) and len(result) > 1 and isinstance(result[1], list) and len(result[1]) > 0:
-            for l in result[1]:
-                bbox = l[0]
-                text = l[1][0]
-                confidence = l[1][1]
+        total_confidence = 0
+        count = 0
+        # New: handle PaddleOCR dict result (v3+)
+        if isinstance(result, list) and len(result) > 0 and isinstance(result[0], dict):
+            ocr_dict = result[0]
+            rec_texts = ocr_dict.get('rec_texts', [])
+            rec_scores = ocr_dict.get('rec_scores', [])
+            for i, text in enumerate(rec_texts):
+                confidence = rec_scores[i] if i < len(rec_scores) else 0
                 text_blocks.append(text)
+                detailed_result.append((None, text, confidence))
                 total_confidence += confidence
-                detailed_result.append((bbox, text, confidence))
+                count += 1
             raw_text = "\n".join(text_blocks).strip()
-            avg_confidence = total_confidence / len(detailed_result) if detailed_result else 0
+            avg_confidence = total_confidence / count if count > 0 else 0
         else:
-            raw_text = ""
-            avg_confidence = 0
+            # fallback to old logic
+            if isinstance(result, list) and len(result) > 1 and isinstance(result[1], list) and len(result[1]) > 0:
+                for l in result[1]:
+                    bbox = l[0]
+                    text = l[1][0]
+                    confidence = l[1][1]
+                    text_blocks.append(text)
+                    total_confidence += confidence
+                    detailed_result.append((bbox, text, confidence))
+                raw_text = "\n".join(text_blocks).strip()
+                avg_confidence = total_confidence / len(detailed_result) if detailed_result else 0
+            else:
+                raw_text = ""
+                avg_confidence = 0
         self.confidence_scores['ocr_confidence'] = avg_confidence
         return raw_text, detailed_result
     
     def create_enhanced_prompt(self, raw_text, image_path):
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S JST")
-        prompt = f"""
+        prompt = f'''
 You are an expert insurance document parser. Extract information from OCR text and return ONLY valid JSON.
 CRITICAL: Your response must be ONLY the JSON structure below. No explanations, no markdown, no extra text.
 Parse this OCR text from an auto insurance document:
 {raw_text}
-Return this exact JSON structure with extracted values:
+
+Return this exact JSON structure with extracted values. If a value is missing, leave it as an empty string. You may add extra fields if found, but these are required for Angular display:
 {{
-  "document_metadata": {{
-    "filename": "{image_path}",
-    "extraction_timestamp": "{current_time}",
-    "document_language": "english",
-    "document_type": "auto_insurance_policy"
+  "policy_number": "Value",
+  "effective_dates": {{
+    "start": "Value",
+    "end": "Value"
   }},
-  "confidence_assessment": {{
-    "overall_confidence": "medium",
-    "field_confidence": {{
-      "policy_holder": "medium",
-      "policy_info": "medium",
-      "vehicle": "medium",
-      "coverage": "medium",
-      "billing": "medium"
-    }}
-  }},
-  "policy_holder": {{
-    "full_name": {{"value": "extract from text or empty", "confidence": "high"}},
-    "address": {{
-      "street": {{"value": "extract from text or empty", "confidence": "medium"}},
-      "city": {{"value": "extract from text or empty", "confidence": "medium"}},
-      "state": {{"value": "extract from text or empty", "confidence": "medium"}},
-      "zip_code": {{"value": "extract from text or empty", "confidence": "medium"}}
-    }},
-    "phone": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "email": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "date_of_birth": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "gender": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "marital_status": {{"value": "extract from text or empty", "confidence": "medium"}}
+  "policyholder_details": {{
+    "full_name": "Value",
+    "address": "Value",
+    "city_state_zip": "Value",
+    "phone": "Value",
+    "email": "Value",
+    "dob": "Value",
+    "gender": "Value",
+    "marital_status": "Value"
   }},
   "policy_information": {{
-    "policy_number": {{"value": "extract from text or empty", "confidence": "high"}},
-    "effective_date": {{"value": "extract from text or empty", "confidence": "high"}},
-    "expiration_date": {{"value": "extract from text or empty", "confidence": "high"}},
-    "policy_term": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "policy_type": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "issue_date": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "renewal_date": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "agent_name": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "agent_id": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "insurance_company": {{"value": "extract from text or empty", "confidence": "high"}}
+    "policy_type": "Value",
+    "issue_date": "Value",
+    "term_length": "Value",
+    "renewal_date": "Value",
+    "agent": "Value",
+    "agent_id": "Value",
+    "office_phone": "Value"
   }},
-  "vehicle_information": {{
-    "year_make_model": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "vin": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "license_plate": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "body_type": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "usage_class": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "annual_mileage": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "garaging_zip": {{"value": "extract from text or empty", "confidence": "medium"}}
+  "insured_vehicle": {{
+    "year": "Value",
+    "make": "Value",
+    "model": "Value",
+    "license_plate": "Value",
+    "body_type": "Value",
+    "usage_class": "Value",
+    "mileage": "Value",
+    "garage_zip": "Value"
   }},
-  "coverage_details": {{
-    "bodily_injury_liability": {{
-      "limit": {{"value": "extract from text or empty", "confidence": "medium"}},
-      "premium": {{"value": "extract from text or empty", "confidence": "medium"}}
-    }},
-    "property_damage_liability": {{
-      "limit": {{"value": "extract from text or empty", "confidence": "medium"}},
-      "premium": {{"value": "extract from text or empty", "confidence": "medium"}}
-    }},
-    "collision": {{
-      "deductible": {{"value": "extract from text or empty", "confidence": "medium"}},
-      "premium": {{"value": "extract from text or empty", "confidence": "medium"}}
-    }},
-    "comprehensive": {{
-      "deductible": {{"value": "extract from text or empty", "confidence": "medium"}},
-      "premium": {{"value": "extract from text or empty", "confidence": "medium"}}
+  "driver_profile": {{
+    "primary_driver_name": "Value",
+    "license_no": "Value",
+    "license_date": "Value",
+    "license_status": "Value",
+    "age_group": "Value",
+    "driving_record": "Value",
+    "relationship": "Value"
+  }},
+  "coverage_limits_and_deductibles": [
+    {{
+      "coverage_type": "Value",
+      "limit": "Value",
+      "deductible": "Value",
+      "premium": "Value"
     }}
+    // ...repeat for each coverage type
+  ],
+  "discounts_applied": {{
+    "good_driver": "Value",
+    "multi_policy": "Value",
+    "vehicle_safety": "Value",
+    "federal_employee": "Value",
+    "total_savings": "Value"
   }},
   "billing_information": {{
-    "payment_method": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "payment_plan": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "monthly_payment": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "total_premium": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "next_due_date": {{"value": "extract from text or empty", "confidence": "medium"}},
-    "discounts_applied": {{
-      "total_discounts": {{"value": "extract from text or empty", "confidence": "medium"}}
-    }}
+    "payment_method": "Value",
+    "payment_plan": "Value",
+    "monthly_amount": "Value",
+    "next_due_date": "Value",
+    "bank_account": "Value"
   }}
 }}
-IMPORTANT: Return ONLY this JSON structure. No other text.
-"""
+IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one per row in the table. Return ONLY this JSON structure. No other text.
+'''
         return prompt
     
     def parse_with_ollama(self, raw_text, image_path):
@@ -163,7 +166,7 @@ IMPORTANT: Return ONLY this JSON structure. No other text.
         prompt = self.create_enhanced_prompt(raw_text, image_path)
         try:
             print("[DEBUG] Sending direct POST to Ollama remote API...")
-            url = "https://ollama.xiltepin.me/api/chat"
+            url = "http://127.0.0.1:11434/api/chat"
             payload = {
                 "model": "llava:7b",
                 "messages": [{"role": "user", "content": prompt}],
@@ -174,12 +177,26 @@ IMPORTANT: Return ONLY this JSON structure. No other text.
                 }
             }
             headers = {"Content-Type": "application/json"}
-            resp = requests.post(url, data=json.dumps(payload), headers=headers, timeout=60)
+            resp = requests.post(url, data=json.dumps(payload), headers=headers, timeout=120)
             print(f"[DEBUG] Ollama API status: {resp.status_code}")
             print(f"[DEBUG] Ollama API response (first 500 chars): {resp.text[:500]}")
             resp.raise_for_status()
-            data = resp.json()
-            content = data.get('message', {}).get('content', '')
+            # Handle streaming JSON lines
+            contents = []
+            for line in resp.text.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                    msg = data.get('message', {}).get('content', '')
+                    if msg:
+                        contents.append(msg)
+                    if data.get('done', False):
+                        break
+                except Exception as e:
+                    print(f"[DEBUG] Skipping non-JSON line: {line[:100]}... Error: {e}")
+            content = ''.join(contents)
             print(f"Raw Ollama response length: {len(content)}")
             print(f"First 200 chars: {content[:200]}...")
             content = content.strip()
@@ -197,6 +214,8 @@ IMPORTANT: Return ONLY this JSON structure. No other text.
                 start = content.find('{')
                 end = content.rfind('}') + 1
                 content = content[start:end]
+            # Fix escaped underscores (\_) to _
+            content = content.replace('\\_', '_')
             print(f"Cleaned content length: {len(content)}")
             print(f"Cleaned first 100 chars: {content[:100]}...")
             parsed_json = json.loads(content)
