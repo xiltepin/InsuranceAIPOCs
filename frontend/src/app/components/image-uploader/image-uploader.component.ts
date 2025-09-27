@@ -58,22 +58,19 @@ uploadImage(): void {
     return;
   }
   this.isProcessing = true;
-  this.error = null;
-  console.log('Uploading file:', this.selectedFile);
-  console.log('Request headers:', this.ocrService.uploadImage(this.selectedFile).request.headers);
-  console.log('Request body:', this.ocrService.uploadImage(this.selectedFile).request.body);
-  this.ocrService.uploadImage(this.selectedFile).subscribe({
-    next: (response: OcrResponse) => {
-      this.ocrResult = response;
-      this.isProcessing = false;
-      console.log('Upload success:', response);
-    },
-    error: (err) => {
-      console.error('Upload error:', err);
-      this.error = `Failed to process image. Status: ${err.status}. Message: ${err.message}. Check backend logs.`;
-      this.isProcessing = false;
-    },
-  });
+    this.error = null;
+    this.ocrResult = null;
+    this.isProcessing = true;
+    this.ocrService.uploadImage(this.selectedFile).subscribe({
+      next: (result) => {
+        this.ocrResult = result;
+        this.isProcessing = false;
+      },
+      error: (err) => {
+        this.error = err?.error?.message || err?.message || 'An error occurred during OCR processing.';
+        this.isProcessing = false;
+      }
+    });
 }
 
   resetForm(): void {
@@ -88,15 +85,20 @@ uploadImage(): void {
   }
 
   getExtractedText(): string {
-    return this.ocrResult?.full_text || '';
+    if (this.ocrResult?.full_text) {
+      return this.ocrResult.full_text;
+    }
+    if (this.ocrResult?.text_blocks) {
+      return this.ocrResult.text_blocks.map(b => b.text).join(' ');
+    }
+    return '';
   }
 
-  getConfidenceScore(): number {
-    if (!this.ocrResult?.text_blocks?.length) return 0;
-    const totalConfidence = this.ocrResult.text_blocks.reduce(
-      (sum: number, block: any) => sum + block.confidence,
-      0
-    );
-    return Math.round((totalConfidence / this.ocrResult.text_blocks.length) * 100);
+  getConfidenceScore(): string {
+    if (this.ocrResult?.text_blocks && this.ocrResult.text_blocks.length > 0) {
+      const avg = this.ocrResult.text_blocks.reduce((sum, b) => sum + b.confidence, 0) / this.ocrResult.text_blocks.length;
+      return avg.toFixed(2);
+    }
+    return '0.00';
   }
 }

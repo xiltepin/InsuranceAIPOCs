@@ -48,9 +48,32 @@
     </div>
 
     <div *ngIf="ocrResult" class="result-section">
-      <h2>Extracted Text</h2>
-      <pre class="extracted-text">{{ getExtractedText() }}</pre>
-      <p>Average Confidence: {{ getConfidenceScore() }}%</p>
+      <h2>Extracted Text Blocks</h2>
+      <div *ngIf="ocrResult.text_blocks && ocrResult.text_blocks.length > 0; else noBlocks">
+        <table class="ocr-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Text</th>
+              <th>Confidence</th>
+              <th>Bounding Box</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let block of ocrResult.text_blocks; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td>{{ block.text }}</td>
+              <td>{{ block.confidence | number: '1.0-2' }}%</td>
+              <td>{{ block.bbox }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="summary">Average Confidence: {{ getConfidenceScore() }}%</p>
+        <p class="summary">Full Text: <span class="full-text">{{ ocrResult.full_text }}</span></p>
+      </div>
+      <ng-template #noBlocks>
+        <p>No text blocks detected.</p>
+      </ng-template>
     </div>
   </main>
 </div>
