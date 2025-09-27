@@ -52,29 +52,29 @@ export class ImageUploaderComponent implements OnInit {
     return null;
   }
 
-  uploadImage(): void {
-    if (!this.selectedFile) {
-      this.error = 'Please select an image first.';
-      return;
-    }
-
-    this.isProcessing = true;
-    this.error = null;
-    console.log('Uploading file:', this.selectedFile);
-
-    this.ocrService.uploadImage(this.selectedFile).subscribe({
-      next: (response: OcrResponse) => {
-        this.ocrResult = response;
-        this.isProcessing = false;
-        console.log('Upload success:', response);
-      },
-      error: (err) => {
-        console.error('Upload error:', err);
-        this.error = `Failed to process image. Status: ${err.status}. Message: ${err.message}. Check backend logs.`;
-        this.isProcessing = false;
-      },
-    });
+uploadImage(): void {
+  if (!this.selectedFile) {
+    this.error = 'Please select an image first.';
+    return;
   }
+  this.isProcessing = true;
+  this.error = null;
+  console.log('Uploading file:', this.selectedFile);
+  console.log('Request headers:', this.ocrService.uploadImage(this.selectedFile).request.headers);
+  console.log('Request body:', this.ocrService.uploadImage(this.selectedFile).request.body);
+  this.ocrService.uploadImage(this.selectedFile).subscribe({
+    next: (response: OcrResponse) => {
+      this.ocrResult = response;
+      this.isProcessing = false;
+      console.log('Upload success:', response);
+    },
+    error: (err) => {
+      console.error('Upload error:', err);
+      this.error = `Failed to process image. Status: ${err.status}. Message: ${err.message}. Check backend logs.`;
+      this.isProcessing = false;
+    },
+  });
+}
 
   resetForm(): void {
     this.selectedFile = null;

@@ -1,4 +1,3 @@
-import easyocr
 import json
 import numpy as np
 from PIL import Image
@@ -7,59 +6,73 @@ import re
 import sys
 import os
 from datetime import datetime
-
+from paddleocr import PaddleOCR
+import requests
+r = requests.get('https://ollama.xiltepin.me')
+print(r.text)
 # Set Ollama host to localhost
-os.environ['OLLAMA_HOST'] = 'http://127.0.0.1:11434'
+#os.environ['OLLAMA_HOST'] = 'http://127.0.0.1:11434'
+os.environ['OLLAMA_HOST'] = 'https://ollama.xiltepin.me'
 
 class InsuranceDocumentExtractor:
-    def __init__(self, languages=['ja', 'en'], use_gpu=True):
-        # Try GPU first, fallback to CPU if GPU fails
+    def preprocess_image(self, image_path):
+        """Convert to grayscale and increase contrast, save to temp file, return new path."""
+        from PIL import ImageEnhance
+        img = Image.open(image_path).convert('L')  # Grayscale
+        enhancer = ImageEnhance.Contrast(img)
+        img = enhancer.enhance(2.0)  # Increase contrast
+        temp_path = 'preprocessed_temp.jpg'
+        img.save(temp_path)
+        return temp_path
+    def __init__(self, languages=['en'], use_gpu=True):
+        # Initialize PaddleOCR with new API
         try:
-            self.reader = easyocr.Reader(languages, gpu=use_gpu)
-            print(f"EasyOCR initialized with GPU: {use_gpu}")
+            self.ocr = PaddleOCR(use_textline_orientation=True, lang=languages[0])
+            print(f"PaddleOCR initialized with GPU: {use_gpu}")
         except Exception as e:
-            print(f"GPU initialization failed: {e}")
-            print("Falling back to CPU...")
-            self.reader = easyocr.Reader(languages, gpu=False)
+            print(f"PaddleOCR initialization failed: {e}")
+            raise
         self.confidence_scores = {}
     
     def extract_text(self, image_path):
-        """Extract text with confidence scores"""
-        image = Image.open(image_path)
-        img_np = np.array(image)
-        
-        # Get detailed results with confidence scores
-        detailed_result = self.reader.readtext(img_np, detail=1)
-        
-        # Extract text and calculate average confidence
+        """Preprocess image, extract text with confidence scores using PaddleOCR (predict API), and debug print result."""
+        # Check file extension
+        if not image_path.lower().endswith((
+            '.jpg', '.png', '.jpeg', '.bmp', '.pdf')):
+            raise ValueError(f"Unsupported file type: {image_path}")
+        # Preprocess image
+        preprocessed_path = self.preprocess_image(image_path)
+        # Perform OCR using predict()
+        result = self.ocr.ocr(preprocessed_path)
+        print("[DEBUG] PaddleOCR ocr() result:", result)
         text_blocks = []
         total_confidence = 0
-        
-        for (bbox, text, confidence) in detailed_result:
-            text_blocks.append(text)
-            total_confidence += confidence
-        
-        raw_text = "\n".join(text_blocks).strip()
-        avg_confidence = total_confidence / len(detailed_result) if detailed_result else 0
-        
+        detailed_result = []
+        # Defensive: check result structure and handle empty results
+        if isinstance(result, list) and len(result) > 1 and isinstance(result[1], list) and len(result[1]) > 0:
+            for l in result[1]:
+                bbox = l[0]
+                text = l[1][0]
+                confidence = l[1][1]
+                text_blocks.append(text)
+                total_confidence += confidence
+                detailed_result.append((bbox, text, confidence))
+            raw_text = "\n".join(text_blocks).strip()
+            avg_confidence = total_confidence / len(detailed_result) if detailed_result else 0
+        else:
+            raw_text = ""
+            avg_confidence = 0
         self.confidence_scores['ocr_confidence'] = avg_confidence
-        
         return raw_text, detailed_result
     
     def create_enhanced_prompt(self, raw_text, image_path):
-        """Create enhanced prompt for better Llama 3.1 parsing"""
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S JST")
-        
         prompt = f"""
 You are an expert insurance document parser. Extract information from OCR text and return ONLY valid JSON.
-
 CRITICAL: Your response must be ONLY the JSON structure below. No explanations, no markdown, no extra text.
-
 Parse this OCR text from an auto insurance document:
 {raw_text}
-
 Return this exact JSON structure with extracted values:
-
 {{
   "document_metadata": {{
     "filename": "{image_path}",
@@ -141,35 +154,35 @@ Return this exact JSON structure with extracted values:
     }}
   }}
 }}
-
 IMPORTANT: Return ONLY this JSON structure. No other text.
 """
         return prompt
     
     def parse_with_ollama(self, raw_text, image_path):
-        """Enhanced parsing with better error handling and debugging"""
+        import traceback
         prompt = self.create_enhanced_prompt(raw_text, image_path)
-        # use llava:7b or phi3:3.8b
         try:
-            print("Sending request to Ollama...")
-            response = ollama.chat(
-                model='llava:7b',
-                messages=[{"role": "user", "content": prompt}],
-                options={
+            print("[DEBUG] Sending direct POST to Ollama remote API...")
+            url = "https://ollama.xiltepin.me/api/chat"
+            payload = {
+                "model": "llava:7b",
+                "messages": [{"role": "user", "content": prompt}],
+                "options": {
                     "temperature": 0.1,
                     "top_p": 0.9,
                     "num_predict": 4000
                 }
-            )
-            
-            content = response['message']['content']
+            }
+            headers = {"Content-Type": "application/json"}
+            resp = requests.post(url, data=json.dumps(payload), headers=headers, timeout=60)
+            print(f"[DEBUG] Ollama API status: {resp.status_code}")
+            print(f"[DEBUG] Ollama API response (first 500 chars): {resp.text[:500]}")
+            resp.raise_for_status()
+            data = resp.json()
+            content = data.get('message', {}).get('content', '')
             print(f"Raw Ollama response length: {len(content)}")
             print(f"First 200 chars: {content[:200]}...")
-            
-            # More aggressive content cleaning
             content = content.strip()
-            
-            # Remove markdown formatting
             if '```json' in content:
                 start = content.find('```json') + 7
                 end = content.find('```', start)
@@ -180,28 +193,19 @@ IMPORTANT: Return ONLY this JSON structure. No other text.
                 end = content.rfind('```')
                 if end != -1 and end > start:
                     content = content[start:end]
-            
-            # Find JSON-like content between braces
             if '{' in content and '}' in content:
                 start = content.find('{')
                 end = content.rfind('}') + 1
                 content = content[start:end]
-            
             print(f"Cleaned content length: {len(content)}")
             print(f"Cleaned first 100 chars: {content[:100]}...")
-            
-            # Try to parse JSON
             parsed_json = json.loads(content)
             print("✅ JSON parsed successfully!")
             return parsed_json
-            
         except json.JSONDecodeError as e:
             print(f"❌ JSON parsing error: {e}")
             print(f"Problematic content (first 300 chars): {content[:300]}")
-            
-            # Try to fix common JSON issues
             try:
-                # Replace single quotes with double quotes
                 content_fixed = content.replace("'", '"')
                 parsed_json = json.loads(content_fixed)
                 print("✅ Fixed JSON by replacing single quotes!")
@@ -209,13 +213,13 @@ IMPORTANT: Return ONLY this JSON structure. No other text.
             except:
                 print("❌ Could not fix JSON, using fallback structure")
                 return self._create_fallback_structure(image_path)
-                
         except Exception as e:
-            print(f"❌ Ollama parsing error: {e}")
+            print(f"❌ Ollama parsing error: {e!r}")
+            print("[TRACEBACK]")
+            traceback.print_exc()
             return self._create_fallback_structure(image_path)
     
     def _create_fallback_structure(self, image_path):
-        """Create fallback JSON structure when parsing fails"""
         return {
             "document_metadata": {
                 "filename": image_path,
@@ -236,65 +240,45 @@ IMPORTANT: Return ONLY this JSON structure. No other text.
         }
     
     def calculate_extraction_accuracy(self, extracted_data):
-        """Calculate confidence metrics"""
         confidence_scores = {
             "ocr_confidence": self.confidence_scores.get('ocr_confidence', 0),
             "extraction_completeness": 0,
             "field_accuracy_estimates": {}
         }
-        
-        # Calculate completeness score
         total_fields = 0
         filled_fields = 0
-        
         def count_fields(data, prefix=""):
             nonlocal total_fields, filled_fields
-            
             if isinstance(data, dict):
                 for key, value in data.items():
                     if key == "confidence_assessment" or key == "document_metadata":
                         continue
-                        
                     if isinstance(value, dict):
                         if "value" in value and "confidence" in value:
                             total_fields += 1
                             if value["value"] and value["value"] != "":
                                 filled_fields += 1
-                                # Record field confidence
                                 field_name = f"{prefix}.{key}" if prefix else key
                                 confidence_scores["field_accuracy_estimates"][field_name] = value["confidence"]
                         else:
                             count_fields(value, f"{prefix}.{key}" if prefix else key)
-        
         count_fields(extracted_data)
-        
         confidence_scores["extraction_completeness"] = (filled_fields / total_fields * 100) if total_fields > 0 else 0
-        
         return confidence_scores
     
     def process_document(self, image_path):
-        """Main processing function"""
-        print(f"Processing: {image_path}")
-        
-        # Check if file exists
+        print(f"[INFO] Received file for processing: {image_path}")
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image file not found: {image_path}")
-        
-        # Create directories if they don't exist
         raw_data_dir = "raw_data"
         results_dir = os.path.join("Results", "JSON")
         os.makedirs(raw_data_dir, exist_ok=True)
         os.makedirs(results_dir, exist_ok=True)
-        
-        # Generate timestamp for filenames
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        
         # Extract text
         raw_text, detailed_ocr = self.extract_text(image_path)
-        print(f"OCR Confidence: {self.confidence_scores['ocr_confidence']:.2f}")
-        print("Raw OCR Text:", raw_text[:500] + "..." if len(raw_text) > 500 else raw_text)
-        
-        # Save raw data to .txt file
+        print(f"[INFO] OCR Confidence: {self.confidence_scores['ocr_confidence']:.2f}")
+        print(f"[INFO] Raw OCR output (first 500 chars):\n{raw_text[:500] + '...' if len(raw_text) > 500 else raw_text}")
         raw_filename = os.path.join(raw_data_dir, f"raw_{timestamp}.txt")
         with open(raw_filename, "w", encoding="utf-8") as raw_file:
             raw_file.write(f"Image: {image_path}\n")
@@ -311,63 +295,45 @@ IMPORTANT: Return ONLY this JSON structure. No other text.
             for i, (bbox, text, confidence) in enumerate(detailed_ocr):
                 raw_file.write(f"Block {i+1}: {text} (confidence: {confidence:.2%})\n")
                 raw_file.write(f"  Position: {bbox}\n\n")
-        
-        print(f"Raw data saved to: {raw_filename}")
-        
+        print(f"[INFO] Raw data saved to: {raw_filename}")
         # Parse with Ollama
         extracted_data = self.parse_with_ollama(raw_text, image_path)
-        
-        # Calculate accuracy metrics
+        # Log JSON output
+        print(f"[INFO] JSON output:\n{json.dumps(extracted_data, ensure_ascii=False, indent=2)[:1000]}")
         accuracy_metrics = self.calculate_extraction_accuracy(extracted_data)
         extracted_data["accuracy_metrics"] = accuracy_metrics
-        
-        # Save JSON results
         json_filename = os.path.join(results_dir, f"insurance_data_{timestamp}.json")
         with open(json_filename, "w", encoding="utf-8") as json_file:
             json.dump(extracted_data, json_file, ensure_ascii=False, indent=2)
-        
-        print(f"JSON file saved to: {json_filename}")
-        print(f"Overall accuracy metrics:")
+        print(f"[INFO] JSON file saved to: {json_filename}")
+        print(f"[INFO] Overall accuracy metrics:")
         print(f"  - OCR Confidence: {accuracy_metrics['ocr_confidence']:.1%}")
         print(f"  - Extraction Completeness: {accuracy_metrics['extraction_completeness']:.1f}%")
-        
         return extracted_data, accuracy_metrics
 
-def process_insurance_document(image_path, languages=['ja', 'en']):
-    """Standalone function for API integration"""
+def process_insurance_document(image_path, languages=['en']):
     extractor = InsuranceDocumentExtractor(languages=languages)
     return extractor.process_document(image_path)
 
-# Command line interface
 if __name__ == "__main__":
-    # Get image path from command line argument or use default
     if len(sys.argv) > 1:
         image_path = sys.argv[1]
     else:
-        image_path = "Test-Geico.jpg"  # Default fallback
-    
-    # Add file extension if not provided
-    if not image_path.lower().endswith(('.jpg', '.jpeg', '.png')):
+        image_path = "Test-Geico.jpg"
+    if not image_path.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.pdf')):
         image_path += ".jpg"
-    
     print(f"Processing image: {image_path}")
-    
     try:
-        # Process document using the standalone function
         data, metrics = process_insurance_document(image_path)
         print("\n✅ Processing completed successfully!")
-        
-        # Optional: print summary
         if "--summary" in sys.argv:
             print("\n📋 EXTRACTION SUMMARY:")
             policy_num = data.get('policy_information', {}).get('policy_number', {}).get('value', 'Not found')
             policy_holder = data.get('policy_holder', {}).get('full_name', {}).get('value', 'Not found')
             insurance_co = data.get('policy_information', {}).get('insurance_company', {}).get('value', 'Not found')
-            
             print(f"Policy Number: {policy_num}")
             print(f"Policy Holder: {policy_holder}")
             print(f"Insurance Company: {insurance_co}")
-        
     except FileNotFoundError:
         print(f"❌ Error: File '{image_path}' not found!")
         print("Make sure the image file is in the same directory as this script.")
