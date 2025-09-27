@@ -7,6 +7,7 @@ import { ImageUploaderComponent } from './components/image-uploader/image-upload
   standalone: true,
   imports: [RouterOutlet, ImageUploaderComponent],
   template: `
+    <app-image-uploader></app-image-uploader>
     <router-outlet></router-outlet>
   `,
 })

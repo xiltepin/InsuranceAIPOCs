@@ -11,4 +11,9 @@ export interface OcrResponse {
   full_text?: string;
   message?: string;
   error?: string;
+  accuracy_metrics?: {
+    ocr_confidence: number;
+    extraction_completeness: number;
+  };
+  progress?: number; // 0-100, for streaming/progress
 }

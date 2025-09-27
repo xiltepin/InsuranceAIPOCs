@@ -16,6 +16,7 @@ export class ImageUploaderComponent implements OnInit {
   ocrResult: OcrResponse | null = null;
   error: string | null = null;
   isProcessing = false;
+  progress = 0;
 
   fields: any = {
     policy_number: '',
@@ -81,6 +82,25 @@ export class ImageUploaderComponent implements OnInit {
     return null;
   }
 
+  onJsonSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const json = JSON.parse(reader.result as string);
+          this.ocrResult = json;
+          this.populateFieldsFromOcr(json);
+          this.error = null;
+        } catch (e) {
+          this.error = 'Invalid JSON file.';
+        }
+      };
+      reader.readAsText(file);
+    }
+  }
+
   uploadImage(): void {
     if (!this.selectedFile) {
       this.error = 'Please select an image first.';
@@ -89,15 +109,25 @@ export class ImageUploaderComponent implements OnInit {
     this.isProcessing = true;
     this.error = null;
     this.ocrResult = null;
+    this.progress = 0;
+    // Simulate progress for demo; in real app, use SSE/websocket or poll backend for progress
+    const progressInterval = setInterval(() => {
+      if (this.progress < 90 && this.isProcessing) {
+        this.progress += 2;
+      }
+    }, 300);
     this.ocrService.uploadImage(this.selectedFile).subscribe({
       next: (result) => {
         this.ocrResult = result;
         this.populateFieldsFromOcr(result);
         this.isProcessing = false;
+        this.progress = 100;
+        clearInterval(progressInterval);
       },
       error: (err) => {
         this.error = err?.error?.message || err?.message || 'An error occurred during OCR processing.';
         this.isProcessing = false;
+        clearInterval(progressInterval);
       }
     });
   }
@@ -180,10 +210,20 @@ export class ImageUploaderComponent implements OnInit {
   }
 
   getConfidenceScore(): string {
+    if (this.ocrResult?.accuracy_metrics?.ocr_confidence !== undefined) {
+      return (this.ocrResult.accuracy_metrics.ocr_confidence * 100).toFixed(1);
+    }
     if (this.ocrResult?.text_blocks && this.ocrResult.text_blocks.length > 0) {
       const avg = this.ocrResult.text_blocks.reduce((sum, b) => sum + b.confidence, 0) / this.ocrResult.text_blocks.length;
-      return avg.toFixed(2);
+      return (avg * 100).toFixed(1);
     }
-    return '0.00';
+    return '0.0';
+  }
+
+  getExtractionCompleteness(): string {
+    if (this.ocrResult?.accuracy_metrics?.extraction_completeness !== undefined) {
+      return this.ocrResult.accuracy_metrics.extraction_completeness.toFixed(1);
+    }
+    return '0.0';
   }
 }

@@ -4,39 +4,57 @@
     <p class="subtitle">Extract text from images with OCR</p>
   </header>
 
-  <main class="main-content">
 
-  <div class="upload-section">
-    <div class="file-input-wrapper">
-      <input
-        type="file"
-        id="fileInput"
-        (change)="onFileSelected($event)"
-        accept="image/*"
-        class="file-input"
-        [disabled]="isProcessing"
-      />
-      <label for="fileInput" class="file-label">Choose Image</label>
+  <main class="main-content">
+    <div class="progress-section" *ngIf="isProcessing || progress > 0">
+      <div class="progress-bar-wrapper">
+        <div class="progress-bar" [style.width]="progress + '%'">{{ progress }}%</div>
+      </div>
+      <div *ngIf="isProcessing" class="progress-label">Processing image, please wait...</div>
     </div>
 
-    <button
-      (click)="uploadImage()"
-      [disabled]="!selectedFile || isProcessing"
-      class="action-btn"
-    >
-      <span *ngIf="isProcessing" class="spinner"></span>
-      {{ isProcessing ? 'Processing...' : 'Process OCR' }}
-    </button>
+    <div class="upload-section">
+      <div class="file-input-wrapper">
+        <input
+          type="file"
+          id="fileInput"
+          (change)="onFileSelected($event)"
+          accept="image/*"
+          class="file-input"
+          [disabled]="isProcessing"
+        />
+        <label for="fileInput" class="file-label">Choose Image</label>
+      </div>
 
-    <button
-      *ngIf="selectedFile || ocrResult || error"
-      (click)="resetForm()"
-      class="action-btn secondary"
-      [disabled]="isProcessing"
-    >
-      Reset
-    </button>
-  </div>
+      <button
+        (click)="uploadImage()"
+        [disabled]="!selectedFile || isProcessing"
+        class="action-btn"
+      >
+        <span *ngIf="isProcessing" class="spinner"></span>
+        {{ isProcessing ? 'Processing...' : 'Process OCR' }}
+      </button>
+
+      <button
+        *ngIf="selectedFile || ocrResult || error"
+        (click)="resetForm()"
+        class="action-btn secondary"
+        [disabled]="isProcessing"
+      >
+        Reset
+      </button>
+
+      <div class="file-input-wrapper" style="margin-top: 1rem;">
+        <input
+          type="file"
+          id="jsonInput"
+          (change)="onJsonSelected($event)"
+          accept="application/json"
+          class="file-input"
+        />
+        <label for="jsonInput" class="file-label">Load JSON</label>
+      </div>
+    </div>
 
   <form class="insurance-form" autocomplete="off" style="margin-bottom: 2rem;">
   <div class="form-row">
@@ -163,6 +181,14 @@
 
     <div *ngIf="ocrResult" class="result-section">
       <h2>Extracted Text Blocks</h2>
+      <div class="confidence-bar-wrapper">
+        <div class="confidence-bar" [style.width]="getConfidenceScore() + '%'">
+          Confidence: {{ getConfidenceScore() }}%
+        </div>
+        <div class="completeness-bar" [style.width]="getExtractionCompleteness() + '%'">
+          Extraction: {{ getExtractionCompleteness() }}%
+        </div>
+      </div>
       <div *ngIf="ocrResult.text_blocks && ocrResult.text_blocks.length > 0; else noBlocks">
         <table class="ocr-table">
           <thead>
@@ -177,12 +203,13 @@
             <tr *ngFor="let block of ocrResult.text_blocks; let i = index">
               <td>{{ i + 1 }}</td>
               <td>{{ block.text }}</td>
-              <td>{{ block.confidence | number: '1.0-2' }}%</td>
+              <td>{{ (block.confidence * 100) | number: '1.0-2' }}%</td>
               <td>{{ block.bbox }}</td>
             </tr>
           </tbody>
         </table>
         <p class="summary">Average Confidence: {{ getConfidenceScore() }}%</p>
+        <p class="summary">Extraction Completeness: {{ getExtractionCompleteness() }}%</p>
         <p class="summary">Full Text: <span class="full-text">{{ ocrResult.full_text }}</span></p>
       </div>
       <ng-template #noBlocks>

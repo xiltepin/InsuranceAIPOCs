@@ -8,8 +8,13 @@ import os
 from datetime import datetime
 from paddleocr import PaddleOCR
 import requests
-r = requests.get('https://ollama.xiltepin.me')
-print(r.text)
+import sys
+# All logs/info to stderr, not stdout
+try:
+    r = requests.get('https://ollama.xiltepin.me')
+    print(r.text, file=sys.stderr)
+except Exception as e:
+    print(f"[ERROR] Ollama check failed: {e}", file=sys.stderr)
 # Set Ollama host to localhost
 #os.environ['OLLAMA_HOST'] = 'http://127.0.0.1:11434'
 os.environ['OLLAMA_HOST'] = 'https://ollama.xiltepin.me'
@@ -160,15 +165,16 @@ Return this exact JSON structure with extracted values. If a value is missing, l
 IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one per row in the table. Return ONLY this JSON structure. No other text.
 '''
         return prompt
-    
+    #llama3.2:latest llava:7b
     def parse_with_ollama(self, raw_text, image_path):
         import traceback
+        import time
         prompt = self.create_enhanced_prompt(raw_text, image_path)
         try:
             print("[DEBUG] Sending direct POST to Ollama remote API...")
             url = "http://127.0.0.1:11434/api/chat"
             payload = {
-                "model": "llava:7b",
+                "model": "llama3.2:latest",
                 "messages": [{"role": "user", "content": prompt}],
                 "options": {
                     "temperature": 0.1,
@@ -179,10 +185,14 @@ IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one 
             headers = {"Content-Type": "application/json"}
             resp = requests.post(url, data=json.dumps(payload), headers=headers, timeout=120)
             print(f"[DEBUG] Ollama API status: {resp.status_code}")
-            print(f"[DEBUG] Ollama API response (first 500 chars): {resp.text[:500]}")
             resp.raise_for_status()
-            # Handle streaming JSON lines
+            # Progress bar setup
+            num_predict = payload["options"]["num_predict"]
+            total_chars = num_predict * 4  # estimate: 1 token ~ 4 chars
             contents = []
+            chars_so_far = 0
+            last_print = 0
+            print("[PROGRESS] Parsing with Ollama:")
             for line in resp.text.splitlines():
                 line = line.strip()
                 if not line:
@@ -192,10 +202,18 @@ IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one 
                     msg = data.get('message', {}).get('content', '')
                     if msg:
                         contents.append(msg)
+                        chars_so_far += len(msg)
+                        percent = min(100, int(chars_so_far / total_chars * 100))
+                        # Print progress bar every 2%
+                        if percent - last_print >= 2 or percent == 100:
+                            bar = '[' + '#' * (percent // 4) + '-' * (25 - percent // 4) + f'] {percent}%'
+                            print(f'\r{bar}', end='', flush=True)
+                            last_print = percent
                     if data.get('done', False):
                         break
                 except Exception as e:
                     print(f"[DEBUG] Skipping non-JSON line: {line[:100]}... Error: {e}")
+            print()  # Newline after progress bar
             content = ''.join(contents)
             print(f"Raw Ollama response length: {len(content)}")
             print(f"First 200 chars: {content[:200]}...")
@@ -326,6 +344,12 @@ IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one 
             json.dump(extracted_data, json_file, ensure_ascii=False, indent=2)
         print(f"[INFO] JSON file saved to: {json_filename}")
         print(f"[INFO] Overall accuracy metrics:")
+        # Print confidence bar
+        conf = accuracy_metrics.get('ocr_confidence', 0)
+        bar_len = 30
+        filled = int(conf * bar_len)
+        bar = '[' + '#' * filled + '-' * (bar_len - filled) + f'] {conf:.1%} confidence'
+        print(bar)
         print(f"  - OCR Confidence: {accuracy_metrics['ocr_confidence']:.1%}")
         print(f"  - Extraction Completeness: {accuracy_metrics['extraction_completeness']:.1f}%")
         return extracted_data, accuracy_metrics
@@ -344,19 +368,22 @@ if __name__ == "__main__":
     print(f"Processing image: {image_path}")
     try:
         data, metrics = process_insurance_document(image_path)
-        print("\n[OK] Processing completed successfully!")
+        # Only print the JSON to stdout, nothing else
+        print(json.dumps(data, ensure_ascii=False, indent=2))
+        # All other info to stderr
+        print("[OK] Processing completed successfully!", file=sys.stderr)
         if "--summary" in sys.argv:
-            print("\n[SUMMARY] EXTRACTION SUMMARY:")
+            print("[SUMMARY] EXTRACTION SUMMARY:", file=sys.stderr)
             policy_num = data.get('policy_information', {}).get('policy_number', {}).get('value', 'Not found')
             policy_holder = data.get('policy_holder', {}).get('full_name', {}).get('value', 'Not found')
             insurance_co = data.get('policy_information', {}).get('insurance_company', {}).get('value', 'Not found')
-            print(f"Policy Number: {policy_num}")
-            print(f"Policy Holder: {policy_holder}")
-            print(f"Insurance Company: {insurance_co}")
+            print(f"Policy Number: {policy_num}", file=sys.stderr)
+            print(f"Policy Holder: {policy_holder}", file=sys.stderr)
+            print(f"Insurance Company: {insurance_co}", file=sys.stderr)
     except FileNotFoundError:
-        print(f"[ERROR] File '{image_path}' not found!")
-        print("Make sure the image file is in the same directory as this script.")
+        print(f"[ERROR] File '{image_path}' not found!", file=sys.stderr)
+        print("Make sure the image file is in the same directory as this script.", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        print(f"[ERROR] Error processing document: {e}")
+        print(f"[ERROR] Error processing document: {e}", file=sys.stderr)
         sys.exit(1)
