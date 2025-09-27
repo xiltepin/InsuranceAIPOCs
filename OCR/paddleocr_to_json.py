@@ -219,21 +219,21 @@ IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one 
             print(f"Cleaned content length: {len(content)}")
             print(f"Cleaned first 100 chars: {content[:100]}...")
             parsed_json = json.loads(content)
-            print("✅ JSON parsed successfully!")
+            print("[OK] JSON parsed successfully!")
             return parsed_json
         except json.JSONDecodeError as e:
-            print(f"❌ JSON parsing error: {e}")
+            print(f"[ERROR] JSON parsing error: {e}")
             print(f"Problematic content (first 300 chars): {content[:300]}")
             try:
                 content_fixed = content.replace("'", '"')
                 parsed_json = json.loads(content_fixed)
-                print("✅ Fixed JSON by replacing single quotes!")
+                print("[OK] Fixed JSON by replacing single quotes!")
                 return parsed_json
             except:
-                print("❌ Could not fix JSON, using fallback structure")
+                print("[ERROR] Could not fix JSON, using fallback structure")
                 return self._create_fallback_structure(image_path)
         except Exception as e:
-            print(f"❌ Ollama parsing error: {e!r}")
+            print(f"[ERROR] Ollama parsing error: {e!r}")
             print("[TRACEBACK]")
             traceback.print_exc()
             return self._create_fallback_structure(image_path)
@@ -344,9 +344,9 @@ if __name__ == "__main__":
     print(f"Processing image: {image_path}")
     try:
         data, metrics = process_insurance_document(image_path)
-        print("\n✅ Processing completed successfully!")
+        print("\n[OK] Processing completed successfully!")
         if "--summary" in sys.argv:
-            print("\n📋 EXTRACTION SUMMARY:")
+            print("\n[SUMMARY] EXTRACTION SUMMARY:")
             policy_num = data.get('policy_information', {}).get('policy_number', {}).get('value', 'Not found')
             policy_holder = data.get('policy_holder', {}).get('full_name', {}).get('value', 'Not found')
             insurance_co = data.get('policy_information', {}).get('insurance_company', {}).get('value', 'Not found')
@@ -354,9 +354,9 @@ if __name__ == "__main__":
             print(f"Policy Holder: {policy_holder}")
             print(f"Insurance Company: {insurance_co}")
     except FileNotFoundError:
-        print(f"❌ Error: File '{image_path}' not found!")
+        print(f"[ERROR] File '{image_path}' not found!")
         print("Make sure the image file is in the same directory as this script.")
         sys.exit(1)
     except Exception as e:
-        print(f"❌ Error processing document: {e}")
+        print(f"[ERROR] Error processing document: {e}")
         sys.exit(1)

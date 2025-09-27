@@ -5,6 +5,120 @@
   </header>
 
   <main class="main-content">
+
+  <div class="upload-section">
+    <div class="file-input-wrapper">
+      <input
+        type="file"
+        id="fileInput"
+        (change)="onFileSelected($event)"
+        accept="image/*"
+        class="file-input"
+        [disabled]="isProcessing"
+      />
+      <label for="fileInput" class="file-label">Choose Image</label>
+    </div>
+
+    <button
+      (click)="uploadImage()"
+      [disabled]="!selectedFile || isProcessing"
+      class="action-btn"
+    >
+      <span *ngIf="isProcessing" class="spinner"></span>
+      {{ isProcessing ? 'Processing...' : 'Process OCR' }}
+    </button>
+
+    <button
+      *ngIf="selectedFile || ocrResult || error"
+      (click)="resetForm()"
+      class="action-btn secondary"
+      [disabled]="isProcessing"
+    >
+      Reset
+    </button>
+  </div>
+
+  <form class="insurance-form" autocomplete="off" style="margin-bottom: 2rem;">
+  <div class="form-row">
+        <label>Policy Number:</label>
+  <input type="text" [(ngModel)]="fields.policy_number" name="policy_number" [readonly]="true" placeholder="Policy Number" />
+      </div>
+      <div class="form-row">
+        <label>Effective Start:</label>
+  <input type="text" [(ngModel)]="fields.effective_start" name="effective_start" [readonly]="true" placeholder="Start Date" />
+        <label>End:</label>
+  <input type="text" [(ngModel)]="fields.effective_end" name="effective_end" [readonly]="true" placeholder="End Date" />
+      </div>
+      <div class="form-row">
+        <label>Full Name:</label>
+  <input type="text" [(ngModel)]="fields.full_name" name="full_name" [readonly]="true" placeholder="Full Name" />
+        <label>Address:</label>
+  <input type="text" [(ngModel)]="fields.address" name="address" [readonly]="true" placeholder="Address" />
+      </div>
+      <div class="form-row">
+        <label>City/State/Zip:</label>
+  <input type="text" [(ngModel)]="fields.city_state_zip" name="city_state_zip" [readonly]="true" placeholder="City, State, Zip" />
+        <label>Phone:</label>
+  <input type="text" [(ngModel)]="fields.phone" name="phone" [readonly]="true" placeholder="Phone" />
+      </div>
+      <div class="form-row">
+        <label>Email:</label>
+  <input type="text" [(ngModel)]="fields.email" name="email" [readonly]="true" placeholder="Email" />
+        <label>DOB:</label>
+  <input type="text" [(ngModel)]="fields.dob" name="dob" [readonly]="true" placeholder="Date of Birth" />
+      </div>
+      <div class="form-row">
+        <label>Gender:</label>
+  <input type="text" [(ngModel)]="fields.gender" name="gender" [readonly]="true" placeholder="Gender" />
+        <label>Marital Status:</label>
+  <input type="text" [(ngModel)]="fields.marital_status" name="marital_status" [readonly]="true" placeholder="Marital Status" />
+      </div>
+      <div class="form-row">
+        <label>Policy Type:</label>
+  <input type="text" [(ngModel)]="fields.policy_type" name="policy_type" [readonly]="true" placeholder="Policy Type" />
+        <label>Issue Date:</label>
+  <input type="text" [(ngModel)]="fields.issue_date" name="issue_date" [readonly]="true" placeholder="Issue Date" />
+      </div>
+      <div class="form-row">
+        <label>Term Length:</label>
+  <input type="text" [(ngModel)]="fields.term_length" name="term_length" [readonly]="true" placeholder="Term Length" />
+        <label>Renewal Date:</label>
+  <input type="text" [(ngModel)]="fields.renewal_date" name="renewal_date" [readonly]="true" placeholder="Renewal Date" />
+      </div>
+      <div class="form-row">
+        <label>Agent:</label>
+  <input type="text" [(ngModel)]="fields.agent" name="agent" [readonly]="true" placeholder="Agent" />
+        <label>Agent ID:</label>
+  <input type="text" [(ngModel)]="fields.agent_id" name="agent_id" [readonly]="true" placeholder="Agent ID" />
+      </div>
+      <div class="form-row">
+        <label>Office Phone:</label>
+  <input type="text" [(ngModel)]="fields.office_phone" name="office_phone" [readonly]="true" placeholder="Office Phone" />
+      </div>
+      <div class="form-row">
+        <label>Vehicle (Year/Make/Model):</label>
+  <input type="text" [(ngModel)]="fields.vehicle" name="vehicle" [readonly]="true" placeholder="Year/Make/Model" />
+        <label>VIN:</label>
+  <input type="text" [(ngModel)]="fields.vin" name="vin" [readonly]="true" placeholder="VIN" />
+      </div>
+      <div class="form-row">
+        <label>License Plate:</label>
+  <input type="text" [(ngModel)]="fields.license_plate" name="license_plate" [readonly]="true" placeholder="License Plate" />
+        <label>Body Type:</label>
+  <input type="text" [(ngModel)]="fields.body_type" name="body_type" [readonly]="true" placeholder="Body Type" />
+      </div>
+      <div class="form-row">
+        <label>Usage Class:</label>
+  <input type="text" [(ngModel)]="fields.usage_class" name="usage_class" [readonly]="true" placeholder="Usage Class" />
+        <label>Annual Mileage:</label>
+  <input type="text" [(ngModel)]="fields.annual_mileage" name="annual_mileage" [readonly]="true" placeholder="Annual Mileage" />
+      </div>
+      <div class="form-row">
+        <label>Garaging Zip:</label>
+  <input type="text" [(ngModel)]="fields.garaging_zip" name="garaging_zip" [readonly]="true" placeholder="Garaging Zip" />
+      </div>
+    </form>
+
     <div class="upload-section">
       <div class="file-input-wrapper">
         <input
