@@ -4,6 +4,7 @@ from PIL import Image
 import ollama
 import re
 import sys
+import textwrap
 import os
 from datetime import datetime
 from paddleocr import PaddleOCR
@@ -11,13 +12,12 @@ import requests
 import sys
 # All logs/info to stderr, not stdout
 try:
-    r = requests.get('https://ollama.xiltepin.me')
+    r = requests.get('http://127.0.0.1:11434')
     print(r.text, file=sys.stderr)
 except Exception as e:
     print(f"[ERROR] Ollama check failed: {e}", file=sys.stderr)
 # Set Ollama host to localhost
-#os.environ['OLLAMA_HOST'] = 'http://127.0.0.1:11434'
-os.environ['OLLAMA_HOST'] = 'https://ollama.xiltepin.me'
+
 
 class InsuranceDocumentExtractor:
     def preprocess_image(self, image_path):
@@ -33,9 +33,9 @@ class InsuranceDocumentExtractor:
         # Initialize PaddleOCR with new API
         try:
             self.ocr = PaddleOCR(use_textline_orientation=True, lang=languages[0])
-            print(f"PaddleOCR initialized with GPU: {use_gpu}")
+            print(f"[INFO] PaddleOCR initialized with GPU: {use_gpu}", file=sys.stderr)
         except Exception as e:
-            print(f"PaddleOCR initialization failed: {e}")
+            print(f"[ERROR] PaddleOCR initialization failed: {e}", file=sys.stderr)
             raise
         self.confidence_scores = {}
     
@@ -49,7 +49,7 @@ class InsuranceDocumentExtractor:
         preprocessed_path = self.preprocess_image(image_path)
         # Perform OCR using predict()
         result = self.ocr.ocr(preprocessed_path)
-        print("[DEBUG] PaddleOCR ocr() result:", result)
+        print("[DEBUG] PaddleOCR ocr() result:", result, file=sys.stderr)
         text_blocks = []
         detailed_result = []
         total_confidence = 0
@@ -86,95 +86,96 @@ class InsuranceDocumentExtractor:
         return raw_text, detailed_result
     
     def create_enhanced_prompt(self, raw_text, image_path):
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S JST")
-        prompt = f'''
-You are an expert insurance document parser. Extract information from OCR text and return ONLY valid JSON.
-CRITICAL: Your response must be ONLY the JSON structure below. No explanations, no markdown, no extra text.
-Parse this OCR text from an auto insurance document:
-{raw_text}
+                current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S JST")
+                prompt = textwrap.dedent(f'''
+                        You are an expert insurance document parser. Extract information from OCR text and return ONLY valid JSON.
+                        CRITICAL: Your response must be ONLY the JSON structure below. No explanations, no markdown, no extra text.
+                        Parse this OCR text from an auto insurance document:
+                        {raw_text}
 
-Return this exact JSON structure with extracted values. If a value is missing, leave it as an empty string. You may add extra fields if found, but these are required for Angular display:
-{{
-  "policy_number": "Value",
-  "effective_dates": {{
-    "start": "Value",
-    "end": "Value"
-  }},
-  "policyholder_details": {{
-    "full_name": "Value",
-    "address": "Value",
-    "city_state_zip": "Value",
-    "phone": "Value",
-    "email": "Value",
-    "dob": "Value",
-    "gender": "Value",
-    "marital_status": "Value"
-  }},
-  "policy_information": {{
-    "policy_type": "Value",
-    "issue_date": "Value",
-    "term_length": "Value",
-    "renewal_date": "Value",
-    "agent": "Value",
-    "agent_id": "Value",
-    "office_phone": "Value"
-  }},
-  "insured_vehicle": {{
-    "year": "Value",
-    "make": "Value",
-    "model": "Value",
-    "license_plate": "Value",
-    "body_type": "Value",
-    "usage_class": "Value",
-    "mileage": "Value",
-    "garage_zip": "Value"
-  }},
-  "driver_profile": {{
-    "primary_driver_name": "Value",
-    "license_no": "Value",
-    "license_date": "Value",
-    "license_status": "Value",
-    "age_group": "Value",
-    "driving_record": "Value",
-    "relationship": "Value"
-  }},
-  "coverage_limits_and_deductibles": [
-    {{
-      "coverage_type": "Value",
-      "limit": "Value",
-      "deductible": "Value",
-      "premium": "Value"
-    }}
-    // ...repeat for each coverage type
-  ],
-  "discounts_applied": {{
-    "good_driver": "Value",
-    "multi_policy": "Value",
-    "vehicle_safety": "Value",
-    "federal_employee": "Value",
-    "total_savings": "Value"
-  }},
-  "billing_information": {{
-    "payment_method": "Value",
-    "payment_plan": "Value",
-    "monthly_amount": "Value",
-    "next_due_date": "Value",
-    "bank_account": "Value"
-  }}
-}}
-IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one per row in the table. Return ONLY this JSON structure. No other text.
-'''
-        return prompt
-    #llama3.2:latest llava:7b
+                        Return this exact JSON structure with extracted values. If a value is missing, leave it as an empty string. You may add extra fields if found, but these are required for Angular display:
+                        {{
+                            "policy_number": "Value",
+                            "effective_dates": {{
+                                "start": "Value",
+                                "end": "Value"
+                            }},
+                            "policyholder_details": {{
+                                "full_name": "Value",
+                                "address": "Value",
+                                "city_state_zip": "Value",
+                                "phone": "Value",
+                                "email": "Value",
+                                "dob": "Value",
+                                "gender": "Value",
+                                "marital_status": "Value"
+                            }},
+                            "policy_information": {{
+                                "policy_type": "Value",
+                                "issue_date": "Value",
+                                "term_length": "Value",
+                                "renewal_date": "Value",
+                                "agent": "Value",
+                                "agent_id": "Value",
+                                "office_phone": "Value"
+                            }},
+                            "insured_vehicle": {{
+                                "year": "Value",
+                                "make": "Value",
+                                "model": "Value",
+                                "vin": "Value",
+                                "license_plate": "Value",
+                                "body_type": "Value",
+                                "usage_class": "Value",
+                                "mileage": "Value",
+                                "garage_zip": "Value"
+                            }},
+                            "driver_profile": {{
+                                "primary_driver_name": "Value",
+                                "license_no": "Value",
+                                "license_date": "Value",
+                                "license_status": "Value",
+                                "age_group": "Value",
+                                "driving_record": "Value",
+                                "relationship": "Value"
+                            }},
+                            "coverage_limits_and_deductibles": [
+                                {{
+                                    "coverage_type": "Value",
+                                    "limit": "Value",
+                                    "deductible": "Value",
+                                    "premium": "Value"
+                                }}
+                                // ...repeat for each coverage type
+                            ],
+                            "discounts_applied": {{
+                                "good_driver": "Value",
+                                "multi_policy": "Value",
+                                "vehicle_safety": "Value",
+                                "federal_employee": "Value",
+                                "total_savings": "Value"
+                            }},
+                            "billing_information": {{
+                                "payment_method": "Value",
+                                "payment_plan": "Value",
+                                "monthly_amount": "Value",
+                                "next_due_date": "Value",
+                                "bank_account": "Value"
+                            }}
+                        }}
+                        IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one per row in the table. Return ONLY this JSON structure. No other text.
+                ''')
+                return prompt
+    #llama3.2:3b llava:7b
     def parse_with_ollama(self, raw_text, image_path):
         import traceback
         import time
         prompt = self.create_enhanced_prompt(raw_text, image_path)
         try:
-            print("[DEBUG] Sending direct POST to Ollama remote API...")
+            print("[DEBUG] Sending direct POST to Ollama remote API...", file=sys.stderr)
             url = "http://127.0.0.1:11434/api/chat"
             payload = {
-                "model": "llama3.2:latest",
+                "model": "llama3.2:3b",
                 "messages": [{"role": "user", "content": prompt}],
                 "options": {
                     "temperature": 0.1,
@@ -184,7 +185,7 @@ IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one 
             }
             headers = {"Content-Type": "application/json"}
             resp = requests.post(url, data=json.dumps(payload), headers=headers, timeout=120)
-            print(f"[DEBUG] Ollama API status: {resp.status_code}")
+            print(f"[DEBUG] Ollama API status: {resp.status_code}", file=sys.stderr)
             resp.raise_for_status()
             # Progress bar setup
             num_predict = payload["options"]["num_predict"]
@@ -192,7 +193,7 @@ IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one 
             contents = []
             chars_so_far = 0
             last_print = 0
-            print("[PROGRESS] Parsing with Ollama:")
+            print("[PROGRESS] Parsing with Ollama:", file=sys.stderr)
             for line in resp.text.splitlines():
                 line = line.strip()
                 if not line:
@@ -207,16 +208,16 @@ IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one 
                         # Print progress bar every 2%
                         if percent - last_print >= 2 or percent == 100:
                             bar = '[' + '#' * (percent // 4) + '-' * (25 - percent // 4) + f'] {percent}%'
-                            print(f'\r{bar}', end='', flush=True)
+                            print(f'\r{bar}', end='', flush=True, file=sys.stderr)
                             last_print = percent
                     if data.get('done', False):
                         break
                 except Exception as e:
-                    print(f"[DEBUG] Skipping non-JSON line: {line[:100]}... Error: {e}")
-            print()  # Newline after progress bar
+                    print(f"[DEBUG] Skipping non-JSON line: {line[:100]}... Error: {e}", file=sys.stderr)
+            print(file=sys.stderr)  # Newline after progress bar
             content = ''.join(contents)
-            print(f"Raw Ollama response length: {len(content)}")
-            print(f"First 200 chars: {content[:200]}...")
+            print(f"Raw Ollama response length: {len(content)}", file=sys.stderr)
+            print(f"First 200 chars: {content[:200]}...", file=sys.stderr)
             content = content.strip()
             if '```json' in content:
                 start = content.find('```json') + 7
@@ -234,26 +235,26 @@ IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one 
                 content = content[start:end]
             # Fix escaped underscores (\_) to _
             content = content.replace('\\_', '_')
-            print(f"Cleaned content length: {len(content)}")
-            print(f"Cleaned first 100 chars: {content[:100]}...")
+            print(f"Cleaned content length: {len(content)}", file=sys.stderr)
+            print(f"Cleaned first 100 chars: {content[:100]}...", file=sys.stderr)
             parsed_json = json.loads(content)
-            print("[OK] JSON parsed successfully!")
+            print("[OK] JSON parsed successfully!", file=sys.stderr)
             return parsed_json
         except json.JSONDecodeError as e:
-            print(f"[ERROR] JSON parsing error: {e}")
-            print(f"Problematic content (first 300 chars): {content[:300]}")
+            print(f"[ERROR] JSON parsing error: {e}", file=sys.stderr)
+            print(f"Problematic content (first 300 chars): {content[:300]}", file=sys.stderr)
             try:
                 content_fixed = content.replace("'", '"')
                 parsed_json = json.loads(content_fixed)
-                print("[OK] Fixed JSON by replacing single quotes!")
+                print("[OK] Fixed JSON by replacing single quotes!", file=sys.stderr)
                 return parsed_json
             except:
-                print("[ERROR] Could not fix JSON, using fallback structure")
+                print("[ERROR] Could not fix JSON, using fallback structure", file=sys.stderr)
                 return self._create_fallback_structure(image_path)
         except Exception as e:
-            print(f"[ERROR] Ollama parsing error: {e!r}")
-            print("[TRACEBACK]")
-            traceback.print_exc()
+            print(f"[ERROR] Ollama parsing error: {e!r}", file=sys.stderr)
+            print("[TRACEBACK]", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
             return self._create_fallback_structure(image_path)
     
     def _create_fallback_structure(self, image_path):
@@ -304,7 +305,7 @@ IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one 
         return confidence_scores
     
     def process_document(self, image_path):
-        print(f"[INFO] Received file for processing: {image_path}")
+        print(f"[INFO] Received file for processing: {image_path}", file=sys.stderr)
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image file not found: {image_path}")
         raw_data_dir = "raw_data"
@@ -314,8 +315,8 @@ IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         # Extract text
         raw_text, detailed_ocr = self.extract_text(image_path)
-        print(f"[INFO] OCR Confidence: {self.confidence_scores['ocr_confidence']:.2f}")
-        print(f"[INFO] Raw OCR output (first 500 chars):\n{raw_text[:500] + '...' if len(raw_text) > 500 else raw_text}")
+        print(f"[INFO] OCR Confidence: {self.confidence_scores['ocr_confidence']:.2f}", file=sys.stderr)
+        print(f"[INFO] Raw OCR output (first 500 chars):\n{raw_text[:500] + '...' if len(raw_text) > 500 else raw_text}", file=sys.stderr)
         raw_filename = os.path.join(raw_data_dir, f"raw_{timestamp}.txt")
         with open(raw_filename, "w", encoding="utf-8") as raw_file:
             raw_file.write(f"Image: {image_path}\n")
@@ -332,26 +333,26 @@ IMPORTANT: The coverage_limits_and_deductibles must be an array of objects, one 
             for i, (bbox, text, confidence) in enumerate(detailed_ocr):
                 raw_file.write(f"Block {i+1}: {text} (confidence: {confidence:.2%})\n")
                 raw_file.write(f"  Position: {bbox}\n\n")
-        print(f"[INFO] Raw data saved to: {raw_filename}")
+        print(f"[INFO] Raw data saved to: {raw_filename}", file=sys.stderr)
         # Parse with Ollama
         extracted_data = self.parse_with_ollama(raw_text, image_path)
         # Log JSON output
-        print(f"[INFO] JSON output:\n{json.dumps(extracted_data, ensure_ascii=False, indent=2)[:1000]}")
+        print(f"[INFO] JSON output:\n{json.dumps(extracted_data, ensure_ascii=False, indent=2)[:1000]}", file=sys.stderr)
         accuracy_metrics = self.calculate_extraction_accuracy(extracted_data)
         extracted_data["accuracy_metrics"] = accuracy_metrics
         json_filename = os.path.join(results_dir, f"insurance_data_{timestamp}.json")
         with open(json_filename, "w", encoding="utf-8") as json_file:
             json.dump(extracted_data, json_file, ensure_ascii=False, indent=2)
-        print(f"[INFO] JSON file saved to: {json_filename}")
-        print(f"[INFO] Overall accuracy metrics:")
+        print(f"[INFO] JSON file saved to: {json_filename}", file=sys.stderr)
+        print(f"[INFO] Overall accuracy metrics:", file=sys.stderr)
         # Print confidence bar
         conf = accuracy_metrics.get('ocr_confidence', 0)
         bar_len = 30
         filled = int(conf * bar_len)
         bar = '[' + '#' * filled + '-' * (bar_len - filled) + f'] {conf:.1%} confidence'
-        print(bar)
-        print(f"  - OCR Confidence: {accuracy_metrics['ocr_confidence']:.1%}")
-        print(f"  - Extraction Completeness: {accuracy_metrics['extraction_completeness']:.1f}%")
+        print(bar, file=sys.stderr)
+        print(f"  - OCR Confidence: {accuracy_metrics['ocr_confidence']:.1%}", file=sys.stderr)
+        print(f"  - Extraction Completeness: {accuracy_metrics['extraction_completeness']:.1f}%", file=sys.stderr)
         return extracted_data, accuracy_metrics
 
 def process_insurance_document(image_path, languages=['en']):
@@ -365,7 +366,7 @@ if __name__ == "__main__":
         image_path = "Test-Geico.jpg"
     if not image_path.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.pdf')):
         image_path += ".jpg"
-    print(f"Processing image: {image_path}")
+    print(f"Processing image: {image_path}", file=sys.stderr)
     try:
         data, metrics = process_insurance_document(image_path)
         # Only print the JSON to stdout, nothing else

@@ -133,32 +133,38 @@ export class ImageUploaderComponent implements OnInit {
   }
 
   populateFieldsFromOcr(result: any) {
-    // Defensive: check for all nested fields
-    this.fields.policy_number = result.policy_number || '';
-    this.fields.effective_start = result.effective_dates?.start || '';
-    this.fields.effective_end = result.effective_dates?.end || '';
-    this.fields.full_name = result.policyholder_details?.full_name || '';
-    this.fields.address = result.policyholder_details?.address || '';
-    this.fields.city_state_zip = result.policyholder_details?.city_state_zip || '';
-    this.fields.phone = result.policyholder_details?.phone || '';
-    this.fields.email = result.policyholder_details?.email || '';
-    this.fields.dob = result.policyholder_details?.dob || '';
-    this.fields.gender = result.policyholder_details?.gender || '';
-    this.fields.marital_status = result.policyholder_details?.marital_status || '';
-    this.fields.policy_type = result.policy_information?.policy_type || '';
-    this.fields.issue_date = result.policy_information?.issue_date || '';
-    this.fields.term_length = result.policy_information?.term_length || '';
-    this.fields.renewal_date = result.policy_information?.renewal_date || '';
-    this.fields.agent = result.policy_information?.agent || '';
-    this.fields.agent_id = result.policy_information?.agent_id || '';
-    this.fields.office_phone = result.policy_information?.office_phone || '';
-    this.fields.vehicle = result.insured_vehicle?.['year/make/model'] || '';
-    this.fields.vin = result.insured_vehicle?.['VIN Number'] || '';
-    this.fields.license_plate = result.insured_vehicle?.license_plate || '';
-    this.fields.body_type = result.insured_vehicle?.body_type || '';
-    this.fields.usage_class = result.insured_vehicle?.usage_class || '';
-    this.fields.annual_mileage = result.insured_vehicle?.annual_mileage || '';
-    this.fields.garaging_zip = result.insured_vehicle?.garaging_zip || '';
+  // Defensive: check for all nested fields
+  this.fields.policy_number = result.policy_number || '';
+  this.fields.effective_start = result.effective_dates?.start || '';
+  this.fields.effective_end = result.effective_dates?.end || '';
+  this.fields.full_name = result.policyholder_details?.full_name || '';
+  this.fields.address = result.policyholder_details?.address || '';
+  this.fields.city_state_zip = result.policyholder_details?.city_state_zip || '';
+  this.fields.phone = result.policyholder_details?.phone || '';
+  this.fields.email = result.policyholder_details?.email || '';
+  this.fields.dob = result.policyholder_details?.dob || '';
+  this.fields.gender = result.policyholder_details?.gender || '';
+  this.fields.marital_status = result.policyholder_details?.marital_status || '';
+  this.fields.policy_type = result.policy_information?.policy_type || '';
+  this.fields.issue_date = result.policy_information?.issue_date || '';
+  this.fields.term_length = result.policy_information?.term_length || '';
+  this.fields.renewal_date = result.policy_information?.renewal_date || '';
+  this.fields.agent = result.policy_information?.agent || '';
+  this.fields.agent_id = result.policy_information?.agent_id || '';
+  this.fields.office_phone = result.policy_information?.office_phone || '';
+  // Compose vehicle as year + make + model
+  const year = result.insured_vehicle?.year || '';
+  const make = result.insured_vehicle?.make || '';
+  const model = result.insured_vehicle?.model || '';
+  this.fields.vehicle = [year, make, model].filter(Boolean).join(' ');
+  // VIN is not present in your JSON, so leave blank
+  this.fields.vin = result.insured_vehicle?.vin || '';
+  this.fields.license_plate = result.insured_vehicle?.license_plate || '';
+  this.fields.body_type = result.insured_vehicle?.body_type || '';
+  this.fields.usage_class = result.insured_vehicle?.usage_class || '';
+  // Map mileage to annual_mileage
+  this.fields.annual_mileage = result.insured_vehicle?.mileage || '';
+  this.fields.garaging_zip = result.insured_vehicle?.garage_zip || '';
   }
 
   resetForm(): void {

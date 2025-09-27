@@ -25,11 +25,8 @@ export class AppService {
 
       const ocrResult = await this.processOCR(resolvedPath);
 
-      return {
-        status: 'success',
-        message: 'Image processed successfully',
-        data: ocrResult,
-      };
+      // Return the full OCR JSON result directly
+      return ocrResult;
     } catch (error) {
       console.error('Upload Error Details:', error);
       throw new Error(`Failed to process image: ${error.message}`);
@@ -55,31 +52,20 @@ export class AppService {
           console.log('Raw OCR Output:', stdout);
           console.log('OCR Error:', stderr);
 
-          // Extract the last JSON-like line from stdout
-          const lines = stdout.trim().split('\n');
-          let jsonLine: string | undefined = lines.pop();
-          while (lines.length && jsonLine && !jsonLine.trim().startsWith('{')) {
-            jsonLine = lines.pop();
-          }
-
-          if (!jsonLine || !jsonLine.trim().startsWith('{')) {
-            reject(new Error('No valid JSON output from OCR script'));
-            return;
+          // Attempt to parse the entire stdout as JSON (handles pretty-printed/multi-line JSON)
+          let jsonText = stdout.trim();
+          // Remove any leading/trailing non-JSON lines (if any)
+          const firstBrace = jsonText.indexOf('{');
+          const lastBrace = jsonText.lastIndexOf('}');
+          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            jsonText = jsonText.substring(firstBrace, lastBrace + 1);
           }
 
           try {
-            const result = JSON.parse(jsonLine);
-            // Ensure the returned structure matches the Angular model
-            resolve({
-              status: result.status || 'success',
-              image_path: result.image_path,
-              text_blocks: result.text_blocks,
-              full_text: result.full_text,
-              message: result.message,
-              error: result.error,
-            });
+            const result = JSON.parse(jsonText);
+            resolve(result);
           } catch (parseErr) {
-            reject(new Error('Failed to parse OCR JSON output: ' + parseErr.message));
+            reject(new Error('Failed to parse OCR JSON output: ' + parseErr.message + '\nRaw output:\n' + jsonText));
           }
         });
       });

@@ -14,6 +14,8 @@
     </div>
 
     <div class="upload-section">
+    <!-- Top action buttons, all aligned -->
+    <div class="action-row">
       <div class="file-input-wrapper">
         <input
           type="file"
@@ -25,7 +27,6 @@
         />
         <label for="fileInput" class="file-label">Choose Image</label>
       </div>
-
       <button
         (click)="uploadImage()"
         [disabled]="!selectedFile || isProcessing"
@@ -34,7 +35,6 @@
         <span *ngIf="isProcessing" class="spinner"></span>
         {{ isProcessing ? 'Processing...' : 'Process OCR' }}
       </button>
-
       <button
         *ngIf="selectedFile || ocrResult || error"
         (click)="resetForm()"
@@ -43,8 +43,7 @@
       >
         Reset
       </button>
-
-      <div class="file-input-wrapper" style="margin-top: 1rem;">
+      <div class="file-input-wrapper">
         <input
           type="file"
           id="jsonInput"
@@ -54,6 +53,12 @@
         />
         <label for="jsonInput" class="file-label">Load JSON</label>
       </div>
+    </div>
+      <!-- Duplicate file input and button removed -->
+
+      <!-- Removed stray Reset button for alignment -->
+
+      <!-- Removed duplicate Load JSON button -->
     </div>
 
   <form class="insurance-form" autocomplete="off" style="margin-bottom: 2rem;">
@@ -138,35 +143,7 @@
     </form>
 
     <div class="upload-section">
-      <div class="file-input-wrapper">
-        <input
-          type="file"
-          id="fileInput"
-          (change)="onFileSelected($event)"
-          accept="image/*"
-          class="file-input"
-          [disabled]="isProcessing"
-        />
-        <label for="fileInput" class="file-label">Choose Image</label>
-      </div>
-
-      <button
-        (click)="uploadImage()"
-        [disabled]="!selectedFile || isProcessing"
-        class="action-btn"
-      >
-        <span *ngIf="isProcessing" class="spinner"></span>
-        {{ isProcessing ? 'Processing...' : 'Process OCR' }}
-      </button>
-
-      <button
-        *ngIf="selectedFile || ocrResult || error"
-        (click)="resetForm()"
-        class="action-btn secondary"
-        [disabled]="isProcessing"
-      >
-        Reset
-      </button>
+      <!-- Removed duplicate bottom action buttons -->
     </div>
 
     <div *ngIf="isProcessing" class="loading-overlay">
@@ -180,41 +157,43 @@
     </div>
 
     <div *ngIf="ocrResult" class="result-section">
-      <h2>Extracted Text Blocks</h2>
-      <div class="confidence-bar-wrapper">
-        <div class="confidence-bar" [style.width]="getConfidenceScore() + '%'">
-          Confidence: {{ getConfidenceScore() }}%
+      <div class="result-black-bg">
+        <h2>Extracted Text Blocks</h2>
+        <div class="confidence-bar-wrapper">
+          <div class="confidence-bar" [style.width]="getConfidenceScore() + '%'">
+            Confidence: {{ getConfidenceScore() }}%
+          </div>
+          <div class="completeness-bar" [style.width]="getExtractionCompleteness() + '%'">
+            Extraction: {{ getExtractionCompleteness() }}%
+          </div>
         </div>
-        <div class="completeness-bar" [style.width]="getExtractionCompleteness() + '%'">
-          Extraction: {{ getExtractionCompleteness() }}%
+        <div *ngIf="ocrResult.text_blocks && ocrResult.text_blocks.length > 0; else noBlocks">
+          <table class="ocr-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Text</th>
+                <th>Confidence</th>
+                <th>Bounding Box</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let block of ocrResult.text_blocks; let i = index">
+                <td>{{ i + 1 }}</td>
+                <td>{{ block.text }}</td>
+                <td>{{ (block.confidence * 100) | number: '1.0-2' }}%</td>
+                <td>{{ block.bbox }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="summary">Average Confidence: {{ getConfidenceScore() }}%</p>
+          <p class="summary">Extraction Completeness: {{ getExtractionCompleteness() }}%</p>
+          <p class="summary">Full Text: <span class="full-text">{{ ocrResult.full_text }}</span></p>
         </div>
+        <ng-template #noBlocks>
+          <p>No text blocks detected.</p>
+        </ng-template>
       </div>
-      <div *ngIf="ocrResult.text_blocks && ocrResult.text_blocks.length > 0; else noBlocks">
-        <table class="ocr-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Text</th>
-              <th>Confidence</th>
-              <th>Bounding Box</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let block of ocrResult.text_blocks; let i = index">
-              <td>{{ i + 1 }}</td>
-              <td>{{ block.text }}</td>
-              <td>{{ (block.confidence * 100) | number: '1.0-2' }}%</td>
-              <td>{{ block.bbox }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <p class="summary">Average Confidence: {{ getConfidenceScore() }}%</p>
-        <p class="summary">Extraction Completeness: {{ getExtractionCompleteness() }}%</p>
-        <p class="summary">Full Text: <span class="full-text">{{ ocrResult.full_text }}</span></p>
-      </div>
-      <ng-template #noBlocks>
-        <p>No text blocks detected.</p>
-      </ng-template>
     </div>
   </main>
 </div>
