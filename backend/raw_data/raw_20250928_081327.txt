@@ -1,0 +1,518 @@
+Image: C:\Users\Edu\Documents\Chamba\AIG\OCR\PCO\backend\uploads\Test-Geico-1759025599386-835604598.jpg
+Extraction Time: 2025-09-28 08:13:37 JST
+OCR Confidence: 98.67%
+Total Text Blocks: 127
+==================================================
+RAW OCR TEXT:
+==================================================
+GEICO
+15 minutes could save you 15% or more on car insuronce
+AUTO INSURANCE DECLARATION PAGE
+Policy Number: GC456789012 | Effective: March 1, 2025 - March 1, 2026
+POLICYHOLDER DETAILS
+Full Name:
+Sarah Chen Williams
+Address:
+892 Maple Avenue
+City/State/ZIP:
+Austin, TX 73301
+Phone:
+(512) 555-0234
+Email:
+s.williams@email.com
+DOB:
+July 22, 1988
+Gender:
+Female
+Marital Status:
+Married
+POLICY INFORMATION
+Policy Type:
+Personal Auto
+Issue Date:
+February 15, 2025
+Term Length:
+6 Months
+Renewal Date:
+September 1, 2025
+Agent:
+Robert Martinez
+Agent ID:
+TX-GC-45678
+Office Phone:
+(512) 555-0199
+INSURED VEHICLE
+Year/Make/Model: 2022 Subaru Outback
+VIN Number:
+4S4BSANC5N3234567
+License Plate:
+TX DEF-4567
+Body Type:
+4DR Wagon
+Usage Class:
+Commute/Business
+Annual Mileage:
+15,000 miles
+Garaging ZIP:
+73301
+DRIVER PROFILE
+Primary Driver:
+Sarah Chen Williams
+License #:
+TX 34567890
+License Date:
+August 15, 2006
+License Status:
+Valid/Clean
+Age Group:
+30+ years
+Driving Record:
+No violations 5+ years
+Relationship:
+Named Insured
+COVERAGE LIMITS & DEDUCTIBLES
+Coverage Type
+Limit
+Deductible
+Premium
+Bodily Injury Liability
+$250,000 Each Person / $500,000 Each Accident
+N/A
+$245.60
+Property Damage Liability
+$100,000 Each Accident
+N/A
+$156.40
+Personal Injury Protection
+$2,500
+N/A
+$67.80
+Uninsured Motorist (BI)
+$250,000 / $500,000
+N/A
+$89.20
+Uninsured Motorist (PD)
+$25,000
+$250
+$34.50
+Collision
+Actual Cash Value
+$1,000
+$234.90
+Comprehensive
+Actual Cash Value
+$500
+$156.70
+Included
+Emergency Roadside Service
+N/A
+$19.90
+DISCOUNTS APPLIED
+Good Driver:
+-$156.80
+Multi-Policy:
+-$89.40
+Vehicle Safety:
+-$67.30
+Defensive Driving: -$43.20
+Federal Employee: -$78.50
+Total Savings:
+-$435.20
+BILLING INFORMATION
+Payment Method: Electronic Funds Transfer
+Payment Plan:
+Monthly
+Monthly Amount:
+$87.15
+Next Due Date:
+April 1, 2025
+Bank Account:
+****_****-9876
+6-Month Total Premium: $569.80 (after discounts)
+GEICO General Insurance Company | Government Employees Insurance Company
+One GEICO Plaza, Washington, DC 20076 | Customer Service: 1-800-GEICO-123
+Authorized Representative:
+==================================================
+DETAILED OCR RESULTS:
+==================================================
+Block 1: GEICO (confidence: 99.98%)
+  Position: None
+
+Block 2: 15 minutes could save you 15% or more on car insuronce (confidence: 98.59%)
+  Position: None
+
+Block 3: AUTO INSURANCE DECLARATION PAGE (confidence: 99.76%)
+  Position: None
+
+Block 4: Policy Number: GC456789012 | Effective: March 1, 2025 - March 1, 2026 (confidence: 99.25%)
+  Position: None
+
+Block 5: POLICYHOLDER DETAILS (confidence: 99.76%)
+  Position: None
+
+Block 6: Full Name: (confidence: 99.98%)
+  Position: None
+
+Block 7: Sarah Chen Williams (confidence: 95.19%)
+  Position: None
+
+Block 8: Address: (confidence: 99.98%)
+  Position: None
+
+Block 9: 892 Maple Avenue (confidence: 99.89%)
+  Position: None
+
+Block 10: City/State/ZIP: (confidence: 99.98%)
+  Position: None
+
+Block 11: Austin, TX 73301 (confidence: 99.84%)
+  Position: None
+
+Block 12: Phone: (confidence: 99.95%)
+  Position: None
+
+Block 13: (512) 555-0234 (confidence: 96.73%)
+  Position: None
+
+Block 14: Email: (confidence: 99.87%)
+  Position: None
+
+Block 15: s.williams@email.com (confidence: 96.98%)
+  Position: None
+
+Block 16: DOB: (confidence: 99.58%)
+  Position: None
+
+Block 17: July 22, 1988 (confidence: 96.60%)
+  Position: None
+
+Block 18: Gender: (confidence: 99.98%)
+  Position: None
+
+Block 19: Female (confidence: 99.98%)
+  Position: None
+
+Block 20: Marital Status: (confidence: 99.98%)
+  Position: None
+
+Block 21: Married (confidence: 97.58%)
+  Position: None
+
+Block 22: POLICY INFORMATION (confidence: 99.13%)
+  Position: None
+
+Block 23: Policy Type: (confidence: 99.95%)
+  Position: None
+
+Block 24: Personal Auto (confidence: 99.91%)
+  Position: None
+
+Block 25: Issue Date: (confidence: 99.96%)
+  Position: None
+
+Block 26: February 15, 2025 (confidence: 98.00%)
+  Position: None
+
+Block 27: Term Length: (confidence: 96.71%)
+  Position: None
+
+Block 28: 6 Months (confidence: 99.79%)
+  Position: None
+
+Block 29: Renewal Date: (confidence: 99.95%)
+  Position: None
+
+Block 30: September 1, 2025 (confidence: 98.06%)
+  Position: None
+
+Block 31: Agent: (confidence: 99.97%)
+  Position: None
+
+Block 32: Robert Martinez (confidence: 99.94%)
+  Position: None
+
+Block 33: Agent ID: (confidence: 98.94%)
+  Position: None
+
+Block 34: TX-GC-45678 (confidence: 99.90%)
+  Position: None
+
+Block 35: Office Phone: (confidence: 99.91%)
+  Position: None
+
+Block 36: (512) 555-0199 (confidence: 98.48%)
+  Position: None
+
+Block 37: INSURED VEHICLE (confidence: 99.50%)
+  Position: None
+
+Block 38: Year/Make/Model: 2022 Subaru Outback (confidence: 99.76%)
+  Position: None
+
+Block 39: VIN Number: (confidence: 99.92%)
+  Position: None
+
+Block 40: 4S4BSANC5N3234567 (confidence: 99.90%)
+  Position: None
+
+Block 41: License Plate: (confidence: 98.92%)
+  Position: None
+
+Block 42: TX DEF-4567 (confidence: 96.56%)
+  Position: None
+
+Block 43: Body Type: (confidence: 99.90%)
+  Position: None
+
+Block 44: 4DR Wagon (confidence: 99.84%)
+  Position: None
+
+Block 45: Usage Class: (confidence: 98.04%)
+  Position: None
+
+Block 46: Commute/Business (confidence: 99.96%)
+  Position: None
+
+Block 47: Annual Mileage: (confidence: 99.90%)
+  Position: None
+
+Block 48: 15,000 miles (confidence: 99.48%)
+  Position: None
+
+Block 49: Garaging ZIP: (confidence: 99.93%)
+  Position: None
+
+Block 50: 73301 (confidence: 99.99%)
+  Position: None
+
+Block 51: DRIVER PROFILE (confidence: 98.24%)
+  Position: None
+
+Block 52: Primary Driver: (confidence: 99.98%)
+  Position: None
+
+Block 53: Sarah Chen Williams (confidence: 96.87%)
+  Position: None
+
+Block 54: License #: (confidence: 98.79%)
+  Position: None
+
+Block 55: TX 34567890 (confidence: 99.67%)
+  Position: None
+
+Block 56: License Date: (confidence: 99.99%)
+  Position: None
+
+Block 57: August 15, 2006 (confidence: 99.93%)
+  Position: None
+
+Block 58: License Status: (confidence: 99.87%)
+  Position: None
+
+Block 59: Valid/Clean (confidence: 99.96%)
+  Position: None
+
+Block 60: Age Group: (confidence: 94.98%)
+  Position: None
+
+Block 61: 30+ years (confidence: 99.56%)
+  Position: None
+
+Block 62: Driving Record: (confidence: 99.98%)
+  Position: None
+
+Block 63: No violations 5+ years (confidence: 99.66%)
+  Position: None
+
+Block 64: Relationship: (confidence: 99.99%)
+  Position: None
+
+Block 65: Named Insured (confidence: 99.95%)
+  Position: None
+
+Block 66: COVERAGE LIMITS & DEDUCTIBLES (confidence: 98.38%)
+  Position: None
+
+Block 67: Coverage Type (confidence: 99.74%)
+  Position: None
+
+Block 68: Limit (confidence: 99.98%)
+  Position: None
+
+Block 69: Deductible (confidence: 99.99%)
+  Position: None
+
+Block 70: Premium (confidence: 99.90%)
+  Position: None
+
+Block 71: Bodily Injury Liability (confidence: 97.03%)
+  Position: None
+
+Block 72: $250,000 Each Person / $500,000 Each Accident (confidence: 97.92%)
+  Position: None
+
+Block 73: N/A (confidence: 99.91%)
+  Position: None
+
+Block 74: $245.60 (confidence: 99.98%)
+  Position: None
+
+Block 75: Property Damage Liability (confidence: 98.44%)
+  Position: None
+
+Block 76: $100,000 Each Accident (confidence: 98.64%)
+  Position: None
+
+Block 77: N/A (confidence: 99.93%)
+  Position: None
+
+Block 78: $156.40 (confidence: 99.96%)
+  Position: None
+
+Block 79: Personal Injury Protection (confidence: 98.38%)
+  Position: None
+
+Block 80: $2,500 (confidence: 95.91%)
+  Position: None
+
+Block 81: N/A (confidence: 99.92%)
+  Position: None
+
+Block 82: $67.80 (confidence: 99.99%)
+  Position: None
+
+Block 83: Uninsured Motorist (BI) (confidence: 97.27%)
+  Position: None
+
+Block 84: $250,000 / $500,000 (confidence: 94.01%)
+  Position: None
+
+Block 85: N/A (confidence: 99.93%)
+  Position: None
+
+Block 86: $89.20 (confidence: 99.95%)
+  Position: None
+
+Block 87: Uninsured Motorist (PD) (confidence: 98.97%)
+  Position: None
+
+Block 88: $25,000 (confidence: 97.09%)
+  Position: None
+
+Block 89: $250 (confidence: 99.99%)
+  Position: None
+
+Block 90: $34.50 (confidence: 99.91%)
+  Position: None
+
+Block 91: Collision (confidence: 99.12%)
+  Position: None
+
+Block 92: Actual Cash Value (confidence: 98.27%)
+  Position: None
+
+Block 93: $1,000 (confidence: 93.57%)
+  Position: None
+
+Block 94: $234.90 (confidence: 93.99%)
+  Position: None
+
+Block 95: Comprehensive (confidence: 98.01%)
+  Position: None
+
+Block 96: Actual Cash Value (confidence: 98.59%)
+  Position: None
+
+Block 97: $500 (confidence: 90.98%)
+  Position: None
+
+Block 98: $156.70 (confidence: 94.47%)
+  Position: None
+
+Block 99: Included (confidence: 99.97%)
+  Position: None
+
+Block 100: Emergency Roadside Service (confidence: 97.93%)
+  Position: None
+
+Block 101: N/A (confidence: 99.95%)
+  Position: None
+
+Block 102: $19.90 (confidence: 99.94%)
+  Position: None
+
+Block 103: DISCOUNTS APPLIED (confidence: 99.90%)
+  Position: None
+
+Block 104: Good Driver: (confidence: 99.97%)
+  Position: None
+
+Block 105: -$156.80 (confidence: 99.90%)
+  Position: None
+
+Block 106: Multi-Policy: (confidence: 99.89%)
+  Position: None
+
+Block 107: -$89.40 (confidence: 98.09%)
+  Position: None
+
+Block 108: Vehicle Safety: (confidence: 97.31%)
+  Position: None
+
+Block 109: -$67.30 (confidence: 99.78%)
+  Position: None
+
+Block 110: Defensive Driving: -$43.20 (confidence: 99.60%)
+  Position: None
+
+Block 111: Federal Employee: -$78.50 (confidence: 97.69%)
+  Position: None
+
+Block 112: Total Savings: (confidence: 98.52%)
+  Position: None
+
+Block 113: -$435.20 (confidence: 94.20%)
+  Position: None
+
+Block 114: BILLING INFORMATION (confidence: 98.42%)
+  Position: None
+
+Block 115: Payment Method: Electronic Funds Transfer (confidence: 98.33%)
+  Position: None
+
+Block 116: Payment Plan: (confidence: 99.81%)
+  Position: None
+
+Block 117: Monthly (confidence: 95.97%)
+  Position: None
+
+Block 118: Monthly Amount: (confidence: 99.96%)
+  Position: None
+
+Block 119: $87.15 (confidence: 99.97%)
+  Position: None
+
+Block 120: Next Due Date: (confidence: 95.21%)
+  Position: None
+
+Block 121: April 1, 2025 (confidence: 91.82%)
+  Position: None
+
+Block 122: Bank Account: (confidence: 99.92%)
+  Position: None
+
+Block 123: ****_****-9876 (confidence: 89.34%)
+  Position: None
+
+Block 124: 6-Month Total Premium: $569.80 (after discounts) (confidence: 99.18%)
+  Position: None
+
+Block 125: GEICO General Insurance Company | Government Employees Insurance Company (confidence: 98.55%)
+  Position: None
+
+Block 126: One GEICO Plaza, Washington, DC 20076 | Customer Service: 1-800-GEICO-123 (confidence: 96.66%)
+  Position: None
+
+Block 127: Authorized Representative: (confidence: 99.97%)
+  Position: None
+

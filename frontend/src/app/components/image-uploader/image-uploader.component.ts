@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { OcrService } from '../../services/ocr.service';
@@ -17,6 +17,7 @@ export class ImageUploaderComponent implements OnInit {
   error: string | null = null;
   isProcessing = false;
   progress = 0;
+  statusMessage: string = ''; // Added to track dynamic status messages
 
   fields: any = {
     policy_number: '',
@@ -46,7 +47,7 @@ export class ImageUploaderComponent implements OnInit {
     garaging_zip: ''
   };
 
-  constructor(private ocrService: OcrService) {}
+  constructor(private ocrService: OcrService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {}
 
@@ -110,61 +111,78 @@ export class ImageUploaderComponent implements OnInit {
     this.error = null;
     this.ocrResult = null;
     this.progress = 0;
-    // Simulate progress for demo; in real app, use SSE/websocket or poll backend for progress
+    this.statusMessage = '1 file sent';
+
+    const steps = [
+      'OCR processing...',
+      'OCR Provided Raw data',
+      'Raw data sent to AI',
+      'Waiting for AI output'
+    ];
+
+    let currentStep = 0;
     const progressInterval = setInterval(() => {
-      if (this.progress < 90 && this.isProcessing) {
-        this.progress += 2;
+      if (currentStep < steps.length - 1 && this.isProcessing) {
+        this.progress = Math.round(((currentStep + 1) / steps.length) * 100);
+        currentStep++;
+        this.statusMessage = steps[currentStep];
       }
-    }, 300);
+    }, 1000);
+
     this.ocrService.uploadImage(this.selectedFile).subscribe({
       next: (result) => {
         this.ocrResult = result;
         this.populateFieldsFromOcr(result);
         this.isProcessing = false;
         this.progress = 100;
+        this.statusMessage = 'Finished';
         clearInterval(progressInterval);
       },
       error: (err) => {
         this.error = err?.error?.message || err?.message || 'An error occurred during OCR processing.';
         this.isProcessing = false;
+        this.statusMessage = 'Waiting for AI output';
         clearInterval(progressInterval);
       }
     });
   }
 
-  populateFieldsFromOcr(result: any) {
-  // Defensive: check for all nested fields
-  this.fields.policy_number = result.policy_number || '';
-  this.fields.effective_start = result.effective_dates?.start || '';
-  this.fields.effective_end = result.effective_dates?.end || '';
-  this.fields.full_name = result.policyholder_details?.full_name || '';
-  this.fields.address = result.policyholder_details?.address || '';
-  this.fields.city_state_zip = result.policyholder_details?.city_state_zip || '';
-  this.fields.phone = result.policyholder_details?.phone || '';
-  this.fields.email = result.policyholder_details?.email || '';
-  this.fields.dob = result.policyholder_details?.dob || '';
-  this.fields.gender = result.policyholder_details?.gender || '';
-  this.fields.marital_status = result.policyholder_details?.marital_status || '';
-  this.fields.policy_type = result.policy_information?.policy_type || '';
-  this.fields.issue_date = result.policy_information?.issue_date || '';
-  this.fields.term_length = result.policy_information?.term_length || '';
-  this.fields.renewal_date = result.policy_information?.renewal_date || '';
-  this.fields.agent = result.policy_information?.agent || '';
-  this.fields.agent_id = result.policy_information?.agent_id || '';
-  this.fields.office_phone = result.policy_information?.office_phone || '';
-  // Compose vehicle as year + make + model
-  const year = result.insured_vehicle?.year || '';
-  const make = result.insured_vehicle?.make || '';
-  const model = result.insured_vehicle?.model || '';
-  this.fields.vehicle = [year, make, model].filter(Boolean).join(' ');
-  // VIN is not present in your JSON, so leave blank
-  this.fields.vin = result.insured_vehicle?.vin || '';
-  this.fields.license_plate = result.insured_vehicle?.license_plate || '';
-  this.fields.body_type = result.insured_vehicle?.body_type || '';
-  this.fields.usage_class = result.insured_vehicle?.usage_class || '';
-  // Map mileage to annual_mileage
-  this.fields.annual_mileage = result.insured_vehicle?.mileage || '';
-  this.fields.garaging_zip = result.insured_vehicle?.garage_zip || '';
+  populateFieldsFromOcr(result: any): void {
+    this.fields.policy_number = result.policy_number || '';
+    this.fields.effective_start = result.effective_dates?.start || '';
+    this.fields.effective_end = result.effective_dates?.end || '';
+    this.fields.full_name = result.policyholder_details?.full_name || '';
+    this.fields.address = result.policyholder_details?.address || '';
+    this.fields.city_state_zip = result.policyholder_details?.city_state_zip || '';
+    this.fields.phone = result.policyholder_details?.phone || '';
+    this.fields.email = result.policyholder_details?.email || '';
+    this.fields.dob = result.policyholder_details?.dob || '';
+    this.fields.gender = result.policyholder_details?.gender || '';
+    this.fields.marital_status = result.policyholder_details?.marital_status || '';
+    this.fields.policy_type = result.policy_information?.policy_type || '';
+    this.fields.issue_date = result.policy_information?.issue_date || '';
+    this.fields.term_length = result.policy_information?.term_length || '';
+    this.fields.renewal_date = result.policy_information?.renewal_date || '';
+    this.fields.agent = result.policy_information?.agent || '';
+    this.fields.agent_id = result.policy_information?.agent_id || '';
+    this.fields.office_phone = result.policy_information?.office_phone || '';
+    const year = result.insured_vehicle?.year || '';
+    const make = result.insured_vehicle?.make || '';
+    const model = result.insured_vehicle?.model || '';
+    this.fields.vehicle = [year, make, model].filter(Boolean).join(' ');
+    this.fields.vin = result.insured_vehicle?.vin || '';
+    this.fields.license_plate = result.insured_vehicle?.license_plate || '';
+    this.fields.body_type = result.insured_vehicle?.body_type || '';
+    this.fields.usage_class = result.insured_vehicle?.usage_class || '';
+    this.fields.annual_mileage = result.insured_vehicle?.mileage || '';
+    this.fields.garaging_zip = result.insured_vehicle?.garage_zip || '';
+
+    // Update status to 'Finished' after populating fields
+    this.statusMessage = 'Finished';
+    this.isProcessing = false;
+
+    // Trigger Angular change detection
+    this.cdr.detectChanges();
   }
 
   resetForm(): void {

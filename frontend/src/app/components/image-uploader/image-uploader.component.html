@@ -10,7 +10,7 @@
       <div class="progress-bar-wrapper">
         <div class="progress-bar" [style.width]="progress + '%'">{{ progress }}%</div>
       </div>
-      <div *ngIf="isProcessing" class="progress-label">Processing image, please wait...</div>
+      <div *ngIf="isProcessing" class="progress-label">{{ statusMessage }}</div>
     </div>
 
     <div class="upload-section">
@@ -148,7 +148,7 @@
 
     <div *ngIf="isProcessing" class="loading-overlay">
       <div class="spinner"></div>
-      <p>Processing your image...</p>
+      <p>{{ statusMessage }}</p>
     </div>
 
     <div *ngIf="error" class="error-message">

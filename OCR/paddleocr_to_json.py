@@ -90,7 +90,7 @@ class InsuranceDocumentExtractor:
                 prompt = textwrap.dedent(f'''
                         You are an expert insurance document parser. Extract information from OCR text and return ONLY valid JSON.
                         CRITICAL: Your response must be ONLY the JSON structure below. No explanations, no markdown, no extra text.
-                        Parse this OCR text from an auto insurance document:
+                        Parse this OCR text from an auto insurance document and you should aim to finish in less than 30 seconds:
                         {raw_text}
 
                         Return this exact JSON structure with extracted values. If a value is missing, leave it as an empty string. You may add extra fields if found, but these are required for Angular display:
