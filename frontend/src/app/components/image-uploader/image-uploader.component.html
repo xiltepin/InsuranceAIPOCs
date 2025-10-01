@@ -61,6 +61,35 @@
       <!-- Removed duplicate Load JSON button -->
     </div>
 
+    <!-- Processing Time Display Bar -->
+    <div class="timing-bar" *ngIf="totalProcessingTime > 0">
+      <div class="timing-header">
+        <h3>Processing Performance</h3>
+      </div>
+      <div class="timing-stats">
+        <div class="timing-item">
+          <span class="timing-label">PaddleOCR:</span>
+          <span class="timing-value">{{ paddleOcrTime.toFixed(2) }}s</span>
+          <div class="timing-bar-visual">
+            <div class="timing-bar-fill paddle-ocr" [style.width]="((paddleOcrTime / totalProcessingTime) * 100) + '%'"></div>
+          </div>
+        </div>
+        <div class="timing-item">
+          <span class="timing-label">AI Processing:</span>
+          <span class="timing-value" [ngClass]="{'ai-enabled': aiProcessingTime > 0, 'ai-disabled': aiProcessingTime === 0}">
+            {{ aiProcessingTime.toFixed(2) }}s {{ aiProcessingTime > 0 ? '(Tesla P100 GPU)' : '(Disabled)' }}
+          </span>
+          <div class="timing-bar-visual">
+            <div class="timing-bar-fill ai-processing" [style.width]="aiProcessingTime > 0 ? ((aiProcessingTime / totalProcessingTime) * 100) + '%' : '0%'"></div>
+          </div>
+        </div>
+        <div class="timing-item total">
+          <span class="timing-label">Total Time:</span>
+          <span class="timing-value">{{ totalProcessingTime.toFixed(2) }}s</span>
+        </div>
+      </div>
+    </div>
+
   <form class="insurance-form" autocomplete="off" style="margin-bottom: 2rem;">
   <div class="form-row">
         <label>Policy Number:</label>

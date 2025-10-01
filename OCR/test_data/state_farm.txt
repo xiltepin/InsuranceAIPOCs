@@ -1,0 +1,102 @@
+STATE FARM
+Like a good neighbor, State Farm is there.®
+AUTOMOBILE INSURANCE POLICY
+Policy Number: SF789456123
+NAMED INSURED
+Name:
+Michael Johnson
+Address:
+1425 Oak Street
+City/State:
+Springfield, IL 62701
+Phone:
+(217) 555-0198
+Email:
+mjohnson@email.com
+Date of Birth:
+March 15, 1985
+Gender:
+Male
+License Status:
+Clean - Gold Status
+POLICY PERIOD
+Effective Date:
+January 15, 2025
+Expiration:
+January 15, 2026
+Term:
+12 Months
+Policy Type:
+Personal Auto
+Agent:
+Sarah Mitchell
+Agent Phone:
+(217) 555-0100
+VEHICLE INFORMATION
+Year/Make/Model: 2021 Honda Accord LX
+VIN:
+1HGCV1F35MA123456
+License Plate:
+IL ABC-1234
+Usage:
+Pleasure/Commuting
+Annual Mileage:
+12,000 miles
+Garaging Address: Same as mailing
+Safety Features:
+ABS, Airbags, Auto Brake
+DRIVER INFORMATION
+FARM
+Michael Johnson
+Primary Driver:
+IL J123-4567-8901
+License Number:
+April 20, 2003
+License Date:
+25+ years old
+Age Restriction:
+Violations:
+None in 3 years
+Self
+Relationship:
+COVERAGE LIMITS AND PREMIUMS
+Coverage Description
+Limits/Deductible
+Bodily Injury Liability
+$100,000/$300,000
+Property Damage Liability
+$50,000
+Uninsured Motorist Bodily Injury
+$100,000/$300,000
+Uninsured Motorist Property Damage
+$25,000
+Medical Payments
+$5,000
+Collision
+ACV less $500 deductible
+Comprehensive
+ACV less $250 deductible
+Rental Reimbursement
+$30/day, $900 maximum
+PREMIUM SUMMARY
+Base Premium:
+$1,456.00
+Discounts Applied: -$287.50
+• Good Driver:
+-$145.60
+•Multi-Policy:
+-$87.36
+•Safety Features:
+-$54.54
+Total Premium:
+$1,168.50
+PAYMENT INFORMATION
+Monthly EFT
+Payment Plan:
+Monthly Payment: $97.38
+February 15, 2025
+Next Due Date:
+****_***+_****_5678
+Account:
+This pol  isu y Sate Farm Mutaltoobie InsuanCopay
+Home Office: Bloomington, Illinois

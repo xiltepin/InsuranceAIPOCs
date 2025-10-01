@@ -49,7 +49,7 @@ class InsuranceDocumentExtractor:
         preprocessed_path = self.preprocess_image(image_path)
         # Perform OCR using predict()
         result = self.ocr.ocr(preprocessed_path)
-        print("[DEBUG] PaddleOCR ocr() result:", result, file=sys.stderr)
+        print("[DEBUG] PaddleOCR processing completed", file=sys.stderr, flush=True)
         text_blocks = []
         detailed_result = []
         total_confidence = 0
@@ -172,7 +172,12 @@ class InsuranceDocumentExtractor:
         import time
         prompt = self.create_enhanced_prompt(raw_text, image_path)
         try:
-            print("[DEBUG] Sending direct POST to Ollama remote API...", file=sys.stderr)
+            print("=" * 80, file=sys.stderr, flush=True)
+            print("[PADDLEOCR SCRIPT]: About to send data to Ollama", file=sys.stderr, flush=True)
+            print(f"[RAW TEXT LENGTH]: {len(raw_text)} characters", file=sys.stderr, flush=True)
+            print(f"[PROMPT LENGTH]: {len(prompt)} characters", file=sys.stderr, flush=True) 
+            print("=" * 80, file=sys.stderr, flush=True)
+            print("[DEBUG] Sending direct POST to Ollama remote API...", file=sys.stderr, flush=True)
             url = "http://127.0.0.1:11434/api/chat"
             payload = {
                 "model": "llama3.2:3b",
@@ -238,7 +243,10 @@ class InsuranceDocumentExtractor:
             print(f"Cleaned content length: {len(content)}", file=sys.stderr)
             print(f"Cleaned first 100 chars: {content[:100]}...", file=sys.stderr)
             parsed_json = json.loads(content)
-            print("[OK] JSON parsed successfully!", file=sys.stderr)
+            print("=" * 80, file=sys.stderr)
+            print("[OLLAMA RESPONSE]: JSON parsed successfully!", file=sys.stderr)
+            print(f"[PARSED JSON LENGTH]: {len(str(parsed_json))} characters", file=sys.stderr)
+            print("=" * 80, file=sys.stderr)
             return parsed_json
         except json.JSONDecodeError as e:
             print(f"[ERROR] JSON parsing error: {e}", file=sys.stderr)
@@ -305,7 +313,7 @@ class InsuranceDocumentExtractor:
         return confidence_scores
     
     def process_document(self, image_path):
-        print(f"[INFO] Received file for processing: {image_path}", file=sys.stderr)
+        print(f"[INFO] Received file for processing: {image_path}", file=sys.stderr, flush=True)
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image file not found: {image_path}")
         raw_data_dir = "raw_data"
@@ -315,8 +323,8 @@ class InsuranceDocumentExtractor:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         # Extract text
         raw_text, detailed_ocr = self.extract_text(image_path)
-        print(f"[INFO] OCR Confidence: {self.confidence_scores['ocr_confidence']:.2f}", file=sys.stderr)
-        print(f"[INFO] Raw OCR output (first 500 chars):\n{raw_text[:500] + '...' if len(raw_text) > 500 else raw_text}", file=sys.stderr)
+        print(f"[INFO] OCR Confidence: {self.confidence_scores['ocr_confidence']:.2f}", file=sys.stderr, flush=True)
+        print(f"[INFO] Raw OCR output (first 500 chars):\n{raw_text[:500] + '...' if len(raw_text) > 500 else raw_text}", file=sys.stderr, flush=True)
         raw_filename = os.path.join(raw_data_dir, f"raw_{timestamp}.txt")
         with open(raw_filename, "w", encoding="utf-8") as raw_file:
             raw_file.write(f"Image: {image_path}\n")
@@ -334,8 +342,38 @@ class InsuranceDocumentExtractor:
                 raw_file.write(f"Block {i+1}: {text} (confidence: {confidence:.2%})\n")
                 raw_file.write(f"  Position: {bbox}\n\n")
         print(f"[INFO] Raw data saved to: {raw_filename}", file=sys.stderr)
-        # Parse with Ollama
+        
+        # LOG COMPLETE RAW TEXT BEFORE SENDING TO OLLAMA
+        print("=" * 80, file=sys.stderr, flush=True)
+        print("[COMPLETE RAW OCR TEXT BEFORE OLLAMA]", file=sys.stderr, flush=True)
+        print("=" * 80, file=sys.stderr, flush=True)
+        print(raw_text, file=sys.stderr, flush=True)
+        print("=" * 80, file=sys.stderr, flush=True)
+        print(f"[RAW TEXT LENGTH]: {len(raw_text)} characters", file=sys.stderr, flush=True)
+        print("=" * 80, file=sys.stderr, flush=True)
+        
+        # Re-enabled Ollama processing to utilize Tesla P100 GPU for enhanced data extraction
+        print("=" * 80, file=sys.stderr, flush=True)
+        print("[ENABLING OLLAMA]: Using Tesla P100 GPU to enhance raw data extraction", file=sys.stderr, flush=True)
+        print("=" * 80, file=sys.stderr, flush=True)
+        
+        # Process with Ollama for structured extraction and field enhancement
         extracted_data = self.parse_with_ollama(raw_text, image_path)
+        
+        # Ensure raw OCR text is included in response
+        if extracted_data:
+            extracted_data["raw_ocr_text"] = raw_text
+            # Update metadata to reflect GPU processing
+            if "document_metadata" in extracted_data:
+                extracted_data["document_metadata"]["processing_method"] = "paddleocr_plus_ollama_gpu"
+            else:
+                extracted_data["document_metadata"] = {
+                    "filename": image_path,
+                    "extraction_timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S JST"),
+                    "document_language": "en", 
+                    "document_type": "auto_insurance_policy",
+                    "processing_method": "paddleocr_plus_ollama_gpu"
+                }
         # Log JSON output
         print(f"[INFO] JSON output:\n{json.dumps(extracted_data, ensure_ascii=False, indent=2)[:1000]}", file=sys.stderr)
         accuracy_metrics = self.calculate_extraction_accuracy(extracted_data)

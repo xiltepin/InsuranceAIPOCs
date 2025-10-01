@@ -22,7 +22,21 @@ export class AppController {
     limits: { fileSize: 10 * 1024 * 1024 }
   }))
   async uploadImage(@UploadedFile() file: Express.Multer.File) {
-    console.log('Controller received file:', file);
+    console.log('==========================================');
+    console.log('NESTJS CONTROLLER: Received file from Angular');
+    console.log('==========================================');
+    console.log('File details:', {
+      fieldname: file?.fieldname,
+      originalname: file?.originalname,
+      encoding: file?.encoding,
+      mimetype: file?.mimetype,
+      size: file?.size,
+      destination: file?.destination,
+      filename: file?.filename,
+      path: file?.path
+    });
+    console.log('==========================================');
+    
     if (!file) {
       console.error('No file uploaded');
       throw new BadRequestException('No file uploaded');

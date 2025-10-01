@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as path from 'path';
-import { exec } from 'child_process';
+import { spawn } from 'child_process';
 import * as fs from 'fs';
 
 @Injectable()
@@ -33,24 +33,55 @@ export class AppService {
     }
   }
 
-  // (Old processOCR removed, replaced by robust version below)
+  // Use spawn for real-time output streaming
     async processOCR(imagePath: string): Promise<any> {
-      // Use the robust paddleocr_to_json.py script
       const ocrScriptPath = path.join(__dirname, '../../OCR/paddleocr_to_json.py');
       const absoluteImagePath = path.resolve(imagePath);
-      const command = `"C:\\Python313\\python.exe" "${ocrScriptPath}" "${absoluteImagePath}"`;
-      console.log('Executing OCR command:', command);
+      
+      console.log('==========================================');
+      console.log('NESTJS: Starting OCR processing with real-time output');
+      console.log('Script path:', ocrScriptPath);
+      console.log('Image path:', absoluteImagePath);
+      console.log('==========================================');
 
       return new Promise((resolve, reject) => {
-        exec(command, (error, stdout, stderr) => {
-          if (error) {
-            console.error('Exec Error:', error);
-            console.error('Stderr:', stderr);
-            reject(new Error(`OCR execution failed with code ${error.code}: ${stderr}`));
+        const pythonProcess = spawn('C:\\Python313\\python.exe', [ocrScriptPath, absoluteImagePath]);
+
+        let stdout = '';
+        let stderr = '';
+
+        // Handle stdout (JSON result)
+        pythonProcess.stdout.on('data', (data) => {
+          const chunk = data.toString();
+          stdout += chunk;
+          console.log('PYTHON STDOUT CHUNK:', chunk);
+        });
+
+        // Handle stderr (our logs and debug info) - REAL TIME!
+        pythonProcess.stderr.on('data', (data) => {
+          const chunk = data.toString();
+          stderr += chunk;
+          console.log('PYTHON STDERR (REAL-TIME):', chunk);
+        });
+
+        // Handle process completion
+        pythonProcess.on('close', (code) => {
+          console.log('==========================================');
+          console.log('NESTJS: Python process completed with code:', code);
+          console.log('==========================================');
+          
+          if (code !== 0) {
+            console.error('Python process failed with code:', code);
+            console.error('Full stderr:', stderr);
+            reject(new Error(`OCR execution failed with code ${code}: ${stderr}`));
             return;
           }
-          console.log('Raw OCR Output:', stdout);
-          console.log('OCR Error:', stderr);
+
+          console.log('==========================================');
+          console.log('NESTJS: Complete stdout from Python script:');
+          console.log('==========================================');
+          console.log(stdout);
+          console.log('==========================================');
 
           // Attempt to parse the entire stdout as JSON (handles pretty-printed/multi-line JSON)
           let jsonText = stdout.trim();
@@ -63,10 +94,22 @@ export class AppService {
 
           try {
             const result = JSON.parse(jsonText);
+            console.log('==========================================');
+            console.log('NESTJS: Parsed JSON result to send back to Angular');
+            console.log('==========================================');
+            console.log('Result keys:', Object.keys(result));
+            console.log('Result sample:', JSON.stringify(result, null, 2).substring(0, 500) + '...');
+            console.log('==========================================');
             resolve(result);
           } catch (parseErr) {
             reject(new Error('Failed to parse OCR JSON output: ' + parseErr.message + '\nRaw output:\n' + jsonText));
           }
+        });
+
+        // Handle process errors
+        pythonProcess.on('error', (error) => {
+          console.error('Failed to start Python process:', error);
+          reject(new Error(`Failed to start Python process: ${error.message}`));
         });
       });
     }
