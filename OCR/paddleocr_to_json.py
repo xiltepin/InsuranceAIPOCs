@@ -360,9 +360,10 @@ class InsuranceDocumentExtractor:
         # Process with Ollama for structured extraction and field enhancement
         extracted_data = self.parse_with_ollama(raw_text, image_path)
         
-        # Ensure raw OCR text is included in response
+        # Ensure raw OCR text is included in response (truncated to prevent HTTP response issues)
         if extracted_data:
-            extracted_data["raw_ocr_text"] = raw_text
+            # Truncate raw OCR text to first 500 characters to prevent large HTTP responses
+            extracted_data["raw_ocr_text"] = raw_text[:500] + "..." if len(raw_text) > 500 else raw_text
             # Update metadata to reflect GPU processing
             if "document_metadata" in extracted_data:
                 extracted_data["document_metadata"]["processing_method"] = "paddleocr_plus_ollama_gpu"
@@ -398,7 +399,46 @@ def process_insurance_document(image_path, languages=['en']):
     return extractor.process_document(image_path)
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
+    # Check if processing raw text directly
+    if "--raw-text" in sys.argv:
+        try:
+            raw_text_index = sys.argv.index("--raw-text")
+            if raw_text_index + 1 < len(sys.argv):
+                raw_text = sys.argv[raw_text_index + 1]
+                print(f"Processing raw text directly (length: {len(raw_text)})", file=sys.stderr)
+                
+                # Initialize the extractor
+                extractor = InsuranceDocumentExtractor()
+                
+                # Process the raw text through Ollama directly
+                start_time = datetime.now()
+                processed_data = extractor.parse_with_ollama(raw_text, "raw_text_input")
+                end_time = datetime.now()
+                
+                # Calculate timing (no PaddleOCR time since we bypass it)
+                ai_processing_time = (end_time - start_time).total_seconds()
+                
+                # Add timing information
+                processed_data['processing_metrics'] = {
+                    'paddleocr_time_seconds': 0.0,  # No PaddleOCR processing
+                    'ai_processing_time_seconds': ai_processing_time,
+                    'total_time_seconds': ai_processing_time,
+                    'raw_text_processing': True
+                }
+                
+                # Output JSON result
+                print(json.dumps(processed_data, ensure_ascii=False, indent=2))
+                print("[OK] Raw text processing completed successfully!", file=sys.stderr)
+                sys.exit(0)
+            else:
+                print("[ERROR] --raw-text flag provided but no text content found", file=sys.stderr)
+                sys.exit(1)
+        except Exception as e:
+            print(f"[ERROR] Error processing raw text: {e}", file=sys.stderr)
+            sys.exit(1)
+    
+    # Standard image processing
+    if len(sys.argv) > 1 and not sys.argv[1].startswith("--"):
         image_path = sys.argv[1]
     else:
         image_path = "Test-Geico.jpg"

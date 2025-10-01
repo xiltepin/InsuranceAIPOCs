@@ -113,4 +113,73 @@ export class AppService {
         });
       });
     }
+
+    async processRawText(rawText: string): Promise<any> {
+      const ocrScriptPath = path.join(__dirname, '../../OCR/paddleocr_to_json.py');
+      
+      console.log('==========================================');
+      console.log('NESTJS: Processing raw text directly with Ollama');
+      console.log('Script path:', ocrScriptPath);
+      console.log('Raw text length:', rawText.length);
+      console.log('==========================================');
+
+      return new Promise((resolve, reject) => {
+        const pythonProcess = spawn('C:\\Python313\\python.exe', [ocrScriptPath, '--raw-text', rawText]);
+
+        let stdout = '';
+        let stderr = '';
+
+        // Handle stdout (JSON result)
+        pythonProcess.stdout.on('data', (data) => {
+          const chunk = data.toString();
+          stdout += chunk;
+          console.log('PYTHON STDOUT CHUNK:', chunk);
+        });
+
+        // Handle stderr (our logs and debug info) - REAL TIME!
+        pythonProcess.stderr.on('data', (data) => {
+          const chunk = data.toString();
+          stderr += chunk;
+          console.log('PYTHON STDERR (REAL-TIME):', chunk);
+        });
+
+        // Handle process completion
+        pythonProcess.on('close', (code) => {
+          console.log('==========================================');
+          console.log('NESTJS: Python raw text process completed with code:', code);
+          console.log('==========================================');
+          
+          if (code !== 0) {
+            console.error('Python raw text process failed with code:', code);
+            console.error('Full stderr:', stderr);
+            reject(new Error(`Raw text processing failed with code ${code}: ${stderr}`));
+            return;
+          }
+
+          // Parse JSON response
+          let jsonText = stdout.trim();
+          const firstBrace = jsonText.indexOf('{');
+          const lastBrace = jsonText.lastIndexOf('}');
+          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            jsonText = jsonText.substring(firstBrace, lastBrace + 1);
+          }
+
+          try {
+            const result = JSON.parse(jsonText);
+            console.log('==========================================');
+            console.log('NESTJS: Parsed raw text JSON result to send back to Angular');
+            console.log('==========================================');
+            resolve(result);
+          } catch (parseErr) {
+            reject(new Error('Failed to parse raw text JSON output: ' + parseErr.message + '\nRaw output:\n' + jsonText));
+          }
+        });
+
+        // Handle process errors
+        pythonProcess.on('error', (error) => {
+          console.error('Failed to start Python raw text process:', error);
+          reject(new Error(`Failed to start Python raw text process: ${error.message}`));
+        });
+      });
+    }
 }

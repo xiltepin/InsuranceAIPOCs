@@ -21,22 +21,22 @@
           type="file"
           id="fileInput"
           (change)="onFileSelected($event)"
-          accept="image/*"
+          accept="image/*,.txt"
           class="file-input"
           [disabled]="isProcessing"
         />
-        <label for="fileInput" class="file-label">Choose Image</label>
+        <label for="fileInput" class="file-label">Choose File</label>
       </div>
       <button
         (click)="uploadImage()"
-        [disabled]="!selectedFile || isProcessing"
+        [disabled]="(!selectedFile && !selectedRawFile) || isProcessing"
         class="action-btn"
       >
         <span *ngIf="isProcessing" class="spinner"></span>
         {{ isProcessing ? 'Processing...' : 'Process OCR' }}
       </button>
       <button
-        *ngIf="selectedFile || ocrResult || error"
+        *ngIf="selectedFile || selectedRawFile || ocrResult || error"
         (click)="resetForm()"
         class="action-btn secondary"
         [disabled]="isProcessing"

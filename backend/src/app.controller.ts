@@ -1,4 +1,4 @@
-import { Controller, Post, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import { Controller, Post, UploadedFile, UseInterceptors, BadRequestException, Body } from '@nestjs/common';
 import { AppService } from './app.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -45,6 +45,33 @@ export class AppController {
       return await this.appService.uploadImage(file);
     } catch (error) {
       console.error('Controller Error:', error);
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post('api/process-raw-text')
+  async processRawText(@Body() body: { rawText: string }) {
+    console.log('==========================================');
+    console.log('NESTJS CONTROLLER: Processing raw text directly');
+    console.log('==========================================');
+    console.log('Raw text length:', body.rawText?.length);
+    console.log('Raw text preview:', body.rawText?.substring(0, 200));
+    console.log('==========================================');
+    
+    if (!body.rawText || body.rawText.trim().length === 0) {
+      console.error('No raw text provided');
+      throw new BadRequestException('No raw text provided');
+    }
+    
+    try {
+      const result = await this.appService.processRawText(body.rawText);
+      console.log('==========================================');
+      console.log('NESTJS CONTROLLER: Sending raw text result back to Angular');
+      console.log('Result keys:', Object.keys(result));
+      console.log('==========================================');
+      return result;
+    } catch (error) {
+      console.error('Controller Error processing raw text:', error);
       throw new BadRequestException(error.message);
     }
   }

@@ -1,0 +1,25 @@
+{
+  "document_metadata": {
+    "filename": "C:\\Users\\Edu\\Documents\\Chamba\\AIG\\OCR\\PCO\\backend\\uploads\\Test-Geico-1759313446735-470737402.jpg",
+    "extraction_timestamp": "2025-10-01 16:13:06 JST",
+    "document_language": "unknown",
+    "document_type": "auto_insurance_policy",
+    "processing_method": "paddleocr_plus_ollama_gpu"
+  },
+  "confidence_assessment": {
+    "overall_confidence": "low",
+    "extraction_error": "Failed to parse with Ollama"
+  },
+  "policy_holder": {},
+  "policy_information": {},
+  "vehicle_information": {},
+  "coverage_details": {},
+  "billing_information": {},
+  "driver_information": {},
+  "raw_ocr_text": "GEICO\n15 minutes could save you 15% or more on car insuronce\nAUTO INSURANCE DECLARATION PAGE\nPolicy Number: GC456789012 | Effective: March 1, 2025 - March 1, 2026\nPOLICYHOLDER DETAILS\nFull Name:\nSarah Chen Williams\nAddress:\n892 Maple Avenue\nCity/State/ZIP:\nAustin, TX 73301\nPhone:\n(512) 555-0234\nEmail:\ns.williams@email.com\nDOB:\nJuly 22, 1988\nGender:\nFemale\nMarital Status:\nMarried\nPOLICY INFORMATION\nPolicy Type:\nPersonal Auto\nIssue Date:\nFebruary 15, 2025\nTerm Length:\n6 Months\nRenewal Date:\nSeptem...",
+  "accuracy_metrics": {
+    "ocr_confidence": 0.9866846391535181,
+    "extraction_completeness": 0,
+    "field_accuracy_estimates": {}
+  }
+}
