@@ -6,9 +6,12 @@ import { Router } from '@angular/router';
   standalone: true,
   template: `
     <div class="home-container">
-      <h1>Welcome to the OCR Insurance Portal</h1>
-      <p class="subtitle">Easily extract and manage insurance data from images and PDFs.</p>
-      <button class="go-btn" (click)="goToOcr()">Go to OCR Auto</button>
+      <h1>Welcome to the Insurance Portal</h1>
+      <p class="subtitle">Manage OCR processing and risk assessments.</p>
+      <div class="button-group">
+        <button class="go-btn" (click)="goToOcr()">OCR Auto</button>
+        <button class="go-btn risk-btn" (click)="goToRisk()">Risk Assessment</button>
+      </div>
     </div>
   `,
   styles: [`
@@ -35,6 +38,12 @@ import { Router } from '@angular/router';
       color: #333;
       margin-bottom: 2.5rem;
     }
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
     .go-btn {
       background: #007bff;
       color: #fff;
@@ -49,11 +58,22 @@ import { Router } from '@angular/router';
     .go-btn:hover {
       background: #0056b3;
     }
+    .risk-btn {
+      background: #28a745;
+    }
+    .risk-btn:hover {
+      background: #218838;
+    }
   `]
 })
 export class HomeComponent {
   constructor(private router: Router) {}
+  
   goToOcr() {
     this.router.navigate(['/OCRAuto']);
+  }
+  
+  goToRisk() {
+    this.router.navigate(['/risk-assessment']);
   }
 }

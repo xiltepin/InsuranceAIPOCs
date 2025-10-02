@@ -28,6 +28,11 @@ OCR/raw_data/*
 OCR/Results/
 !OCR/raw_data/.gitkeep
 
+# Backend processing files
+backend/uploads/
+backend/raw_data/
+backend/Results/JSON/
+
 # VS Code
 .vscode/
 

@@ -1,0 +1,117 @@
+{
+  "policy_number": "GC456789012",
+  "effective_dates": {
+    "start": "March 1, 2025",
+    "end": "March 1, 2026"
+  },
+  "policyholder_details": {
+    "full_name": "Sarah Chen Williams",
+    "address": "892 Maple Avenue",
+    "city_state_zip": "Austin, TX 73301",
+    "phone": "(512) 555-0234",
+    "email": "s.williams@email.com",
+    "dob": "July 22, 1988",
+    "gender": "Female",
+    "marital_status": "Married"
+  },
+  "policy_information": {
+    "policy_type": "Personal Auto",
+    "issue_date": "February 15, 2025",
+    "term_length": "6 Months",
+    "renewal_date": "September 1, 2025",
+    "agent": "Robert Martinez",
+    "agent_id": "TX-GC-45678",
+    "office_phone": "(512) 555-0199"
+  },
+  "insured_vehicle": {
+    "year": "2022",
+    "make": "Subaru Outback",
+    "model": "Outback",
+    "vin": "4S4BSANC5N3234567",
+    "license_plate": "TX DEF-4567",
+    "body_type": "4DR Wagon",
+    "usage_class": "Commute/Business",
+    "mileage": "15,000 miles",
+    "garage_zip": "73301"
+  },
+  "driver_profile": {
+    "primary_driver_name": "Sarah Chen Williams",
+    "license_no": "TX 34567890",
+    "license_date": "August 15, 2006",
+    "license_status": "Valid/Clean",
+    "age_group": "30+ years",
+    "driving_record": "No violations 5+ years",
+    "relationship": "Named Insured"
+  },
+  "coverage_limits_and_deductibles": [
+    {
+      "coverage_type": "Bodily Injury Liability",
+      "limit": "$250,000 Each Person / $500,000 Each Accident",
+      "deductible": "N/A",
+      "premium": "$245.60"
+    },
+    {
+      "coverage_type": "Property Damage Liability",
+      "limit": "$100,000 Each Accident",
+      "deductible": "N/A",
+      "premium": "$156.40"
+    },
+    {
+      "coverage_type": "Personal Injury Protection",
+      "limit": "$2,500",
+      "deductible": "N/A",
+      "premium": "$67.80"
+    },
+    {
+      "coverage_type": "Uninsured Motorist (BI)",
+      "limit": "$250,000 / $500,000",
+      "deductible": "N/A",
+      "premium": "$89.20"
+    },
+    {
+      "coverage_type": "Uninsured Motorist (PD)",
+      "limit": "$25,000",
+      "deductible": "$250",
+      "premium": "$34.50"
+    },
+    {
+      "coverage_type": "Collision",
+      "limit": "Actual Cash Value",
+      "deductible": "$1,000",
+      "premium": "$234.90"
+    },
+    {
+      "coverage_type": "Comprehensive",
+      "limit": "Actual Cash Value",
+      "deductible": "$500",
+      "premium": "$156.70"
+    }
+  ],
+  "discounts_applied": {
+    "good_driver": "-$156.80",
+    "multi_policy": "-$89.40",
+    "vehicle_safety": "-$67.30",
+    "federal_employee": "-$78.50",
+    "total_savings": "-$435.20"
+  },
+  "billing_information": {
+    "payment_method": "Electronic Funds Transfer",
+    "payment_plan": "Monthly",
+    "monthly_amount": "$87.15",
+    "next_due_date": "April 1, 2025",
+    "bank_account": "****_****-9876"
+  },
+  "raw_ocr_text": "GEICO\n15 minutes could save you 15% or more on car insuronce\nAUTO INSURANCE DECLARATION PAGE\nPolicy Number: GC456789012 | Effective: March 1, 2025 - March 1, 2026\nPOLICYHOLDER DETAILS\nFull Name:\nSarah Chen Williams\nAddress:\n892 Maple Avenue\nCity/State/ZIP:\nAustin, TX 73301\nPhone:\n(512) 555-0234\nEmail:\ns.williams@email.com\nDOB:\nJuly 22, 1988\nGender:\nFemale\nMarital Status:\nMarried\nPOLICY INFORMATION\nPolicy Type:\nPersonal Auto\nIssue Date:\nFebruary 15, 2025\nTerm Length:\n6 Months\nRenewal Date:\nSeptember 1, 2025\nAgent:\nRobert Martinez\nAgent ID:\nTX-GC-45678\nOffice Phone:\n(512) 555-0199\nINSURED VEHICLE\nYear/Make/Model: 2022 Subaru Outback\nVIN Number:\n4S4BSANC5N3234567\nLicense Plate:\nTX DEF-4567\nBody Type:\n4DR Wagon\nUsage Class:\nCommute/Business\nAnnual Mileage:\n15,000 miles\nGaraging ZIP:\n73301\nDRIVER PROFILE\nPrimary Driver:\nSarah Chen Williams\nLicense #:\nTX 34567890\nLicense Date:\nAugust 15, 2006\nLicense Status:\nValid/Clean\nAge Group:\n30+ years\nDriving Record:\nNo violations 5+ years\nRelationship:\nNamed Insured\nCOVERAGE LIMITS & DEDUCTIBLES\nCoverage Type\nLimit\nDeductible\nPremium\nBodily Injury Liability\n$250,000 Each Person / $500,000 Each Accident\nN/A\n$245.60\nProperty Damage Liability\n$100,000 Each Accident\nN/A\n$156.40\nPersonal Injury Protection\n$2,500\nN/A\n$67.80\nUninsured Motorist (BI)\n$250,000 / $500,000\nN/A\n$89.20\nUninsured Motorist (PD)\n$25,000\n$250\n$34.50\nCollision\nActual Cash Value\n$1,000\n$234.90\nComprehensive\nActual Cash Value\n$500\n$156.70\nIncluded\nEmergency Roadside Service\nN/A\n$19.90\nDISCOUNTS APPLIED\nGood Driver:\n-$156.80\nMulti-Policy:\n-$89.40\nVehicle Safety:\n-$67.30\nDefensive Driving: -$43.20\nFederal Employee: -$78.50\nTotal Savings:\n-$435.20\nBILLING INFORMATION\nPayment Method: Electronic Funds Transfer\nPayment Plan:\nMonthly\nMonthly Amount:\n$87.15\nNext Due Date:\nApril 1, 2025\nBank Account:\n****_****-9876\n6-Month Total Premium: $569.80 (after discounts)\nGEICO General Insurance Company | Government Employees Insurance Company\nOne GEICO Plaza, Washington, DC 20076 | Customer Service: 1-800-GEICO-123\nAuthorized Representative:",
+  "document_metadata": {
+    "filename": "C:\\Users\\Edu\\Documents\\Chamba\\AIG\\OCR\\PCO\\backend\\uploads\\Test-Geico-1759313110367-395710244.jpg",
+    "extraction_timestamp": "2025-10-01 16:08:23 JST",
+    "document_language": "en",
+    "document_type": "auto_insurance_policy",
+    "processing_method": "paddleocr_plus_ollama_gpu"
+  },
+  "accuracy_metrics": {
+    "ocr_confidence": 0.9866846391535181,
+    "extraction_completeness": 0,
+    "field_accuracy_estimates": {}
+  }
+}

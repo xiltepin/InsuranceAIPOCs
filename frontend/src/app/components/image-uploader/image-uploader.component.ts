@@ -13,6 +13,7 @@ import { OcrResponse } from '../../models/ocr-response.model';
 })
 export class ImageUploaderComponent implements OnInit {
   selectedFile: File | null = null;
+  selectedRawFile: File | null = null;
   ocrResult: OcrResponse | null = null;
   error: string | null = null;
   isProcessing = false;
@@ -66,10 +67,19 @@ export class ImageUploaderComponent implements OnInit {
       if (validationError) {
         this.error = validationError;
         this.selectedFile = null;
+        this.selectedRawFile = null;
       } else {
-        this.selectedFile = file;
+        // Determine if it's an image, PDF, or text file
+        if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+          this.selectedFile = file;
+          this.selectedRawFile = null;
+          console.log('Selected file for OCR processing:', this.selectedFile);
+        } else if (file.type === 'text/plain') {
+          this.selectedRawFile = file;
+          this.selectedFile = null;
+          console.log('Selected raw text file:', this.selectedRawFile);
+        }
         this.error = null;
-        console.log('Selected file:', this.selectedFile);
       }
     } else {
       this.error = 'No file selected. Please try again.';
@@ -78,10 +88,16 @@ export class ImageUploaderComponent implements OnInit {
 
   validateFile(file: File): string | null {
     const maxSize = 10 * 1024 * 1024; // 10MB
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    const allowedPdfTypes = ['application/pdf'];
+    const allowedTextTypes = ['text/plain'];
 
-    if (!allowedTypes.includes(file.type)) {
-      return 'Please select a valid image file (JPEG, PNG, GIF)';
+    const isValidImage = allowedImageTypes.includes(file.type);
+    const isValidPdf = allowedPdfTypes.includes(file.type);
+    const isValidText = allowedTextTypes.includes(file.type);
+
+    if (!isValidImage && !isValidPdf && !isValidText) {
+      return 'Please select a valid image file (JPEG, PNG, GIF), PDF file, or text file (.txt)';
     }
     if (file.size > maxSize) {
       return 'File size must be less than 10MB';
@@ -109,15 +125,21 @@ export class ImageUploaderComponent implements OnInit {
   }
 
   uploadImage(): void {
+    // Check if we have raw data or image
+    if (this.selectedRawFile) {
+      this.processRawData();
+      return;
+    }
+    
     if (!this.selectedFile) {
-      this.error = 'Please select an image first.';
+      this.error = 'Please select an image or raw text file first.';
       return;
     }
     this.isProcessing = true;
     this.error = null;
     this.ocrResult = null;
     this.progress = 0;
-    this.statusMessage = '1 file sent';
+    this.statusMessage = `Processing ${this.selectedFile.name} (image file)`;
     
     // Reset and start timing
     this.processingStartTime = Date.now();
@@ -156,21 +178,30 @@ export class ImageUploaderComponent implements OnInit {
         // Calculate processing times
         this.totalProcessingTime = (Date.now() - this.processingStartTime) / 1000;
         
-        // Check if Ollama was used based on processing method
-        const processingMethod = result.document_metadata?.processing_method || 'paddleocr_only';
-        if (processingMethod.includes('ollama')) {
-          // Estimate that PaddleOCR takes about 30% of total time, Ollama takes 70%
-          this.paddleOcrTime = this.totalProcessingTime * 0.3;
-          this.aiProcessingTime = this.totalProcessingTime * 0.7;
+        // Use actual timing from processing_metrics if available
+        if ((result as any).processing_metrics) {
+          const metrics = (result as any).processing_metrics;
+          this.paddleOcrTime = metrics.paddleocr_time_seconds || 0;
+          this.aiProcessingTime = metrics.ai_processing_time_seconds || 0;
+          this.totalProcessingTime = metrics.total_time_seconds || this.totalProcessingTime;
         } else {
-          // Only PaddleOCR was used
-          this.paddleOcrTime = this.totalProcessingTime;
-          this.aiProcessingTime = 0;
+          // Fallback estimation
+          const processingMethod = result.document_metadata?.processing_method || 'paddleocr_only';
+          if (processingMethod.includes('ollama')) {
+            this.paddleOcrTime = this.totalProcessingTime * 0.3;
+            this.aiProcessingTime = this.totalProcessingTime * 0.7;
+          } else {
+            this.paddleOcrTime = this.totalProcessingTime;
+            this.aiProcessingTime = 0;
+          }
         }
         
         this.isProcessing = false;
         this.progress = 100;
         this.statusMessage = 'Finished';
+        
+        // Force immediate UI update
+        this.cdr.detectChanges();
         clearInterval(progressInterval);
       },
       error: (err) => {
@@ -182,44 +213,78 @@ export class ImageUploaderComponent implements OnInit {
     });
   }
 
-  populateFieldsFromOcr(result: any): void {
-    console.log('=== PROCESSING OCR RESULT ===');
-    console.log('Processing method:', result.document_metadata?.processing_method);
-    console.log('Has raw_ocr_text:', !!result.raw_ocr_text);
-    console.log('Has structured data:', !!result.policyholder_details);
-    
-    // Handle both PaddleOCR-only and Ollama-enhanced results
-    if (result.raw_ocr_text) {
-      console.log('Processing result with raw OCR text');
-      
-      // Create a simple text block structure for display
-      result.text_blocks = [{
-        text: result.raw_ocr_text,
-        confidence: result.confidence_assessment?.ocr_confidence || 0.99,
-        bbox: 'Full Document'
-      }];
-      result.full_text = result.raw_ocr_text;
-      
-      // Check if we have Ollama-enhanced structured data
-      if (result.policyholder_details || result.policy_information || result.insured_vehicle) {
-        console.log('Using Ollama-enhanced structured data');
-        // Use structured data from Ollama
-        this.populateFromStructuredData(result);
-      } else {
-        console.log('Falling back to pattern matching on raw text');
-        // Fallback to pattern matching for raw text
-        this.extractBasicInfoFromRawText(result.raw_ocr_text);
-      }
-    } else {
-      console.log('Processing legacy structured result');
-      // Handle legacy structured results
-      this.populateFromStructuredData(result);
+  processRawData(): void {
+    if (!this.selectedRawFile) {
+      this.error = 'No raw data file selected.';
+      return;
     }
 
-    // Always try post-processing for additional field extraction
-    if (result.raw_ocr_text) {
-      this.postProcessExtraction(result.raw_ocr_text);
+    this.isProcessing = true;
+    this.error = null;
+    this.ocrResult = null;
+    this.progress = 0;
+    this.statusMessage = `Processing ${this.selectedRawFile.name} (raw text file)`;    // Reset and start timing
+    this.processingStartTime = Date.now();
+    this.paddleOcrTime = 0;
+    this.aiProcessingTime = 0;
+    this.totalProcessingTime = 0;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const rawText = reader.result as string;
+      console.log('Raw text loaded:', rawText.substring(0, 200) + '...');
+      
+      // Send raw text directly to backend for Ollama processing
+      console.log('FRONTEND: About to call processRawText API');
+      this.ocrService.processRawText(rawText).subscribe({
+        next: (result) => {
+          console.log('FRONTEND: Raw data processing completed successfully!');
+          console.log('FRONTEND: Result keys:', Object.keys(result));
+          console.log('FRONTEND: Processing metrics:', (result as any).processing_metrics);
+          
+          this.ocrResult = result;
+          this.populateFieldsFromOcr(result);
+          
+          // Calculate processing times - all time is AI processing since no PaddleOCR
+          this.totalProcessingTime = (Date.now() - this.processingStartTime) / 1000;
+          this.paddleOcrTime = 0; // No PaddleOCR used
+          this.aiProcessingTime = this.totalProcessingTime; // All time is Ollama processing
+          
+          this.isProcessing = false;
+          this.progress = 100;
+          this.statusMessage = 'Finished';
+          
+          // Force change detection for immediate UI update
+          this.cdr.detectChanges();
+          console.log('FRONTEND: UI updated, processing complete');
+        },
+        error: (err) => {
+          console.error('FRONTEND: Error in raw data processing:', err);
+          this.error = err?.error?.message || err?.message || 'An error occurred during raw data processing.';
+          this.isProcessing = false;
+          this.statusMessage = 'Error processing raw data';
+        }
+      });
+    };
+    
+    reader.readAsText(this.selectedRawFile);
+  }
+
+  populateFieldsFromOcr(result: any): void {
+    console.log('=== PROCESSING OCR RESULT (FAST MODE) ===');
+    
+    // Optimized: Direct structured data processing - skip complex checks
+    if (result.policyholder_details || result.policy_information || result.insured_vehicle) {
+      console.log('Using Ollama-enhanced structured data (FAST)');
+      this.populateFromStructuredData(result);
+    } else if (result.raw_ocr_text) {
+      console.log('Processing raw text (FAST)');
+      result.full_text = result.raw_ocr_text;
+      this.extractBasicInfoFromRawText(result.raw_ocr_text);
     }
+    
+    // Skip post-processing for faster UI updates (can be optional)
+    // this.postProcessExtraction(result.raw_ocr_text); // Commented out for speed
   }
 
   populateFromStructuredData(result: any): void {
@@ -537,6 +602,7 @@ export class ImageUploaderComponent implements OnInit {
 
   resetForm(): void {
     this.selectedFile = null;
+    this.selectedRawFile = null;
     this.ocrResult = null;
     this.error = null;
     this.isProcessing = false;
@@ -584,6 +650,11 @@ export class ImageUploaderComponent implements OnInit {
   }
 
   getConfidenceScore(): string {
+    // First, check for text_blocks (prioritized as it's most accurate)
+    if (this.ocrResult?.text_blocks && this.ocrResult.text_blocks.length > 0) {
+      const avg = this.ocrResult.text_blocks.reduce((sum: number, b: any) => sum + (b.confidence || 0), 0) / this.ocrResult.text_blocks.length;
+      return (avg * 100).toFixed(1);
+    }
     // Handle new structure with confidence_assessment
     if (this.ocrResult?.confidence_assessment?.ocr_confidence !== undefined) {
       return (this.ocrResult.confidence_assessment.ocr_confidence * 100).toFixed(1);
@@ -592,14 +663,18 @@ export class ImageUploaderComponent implements OnInit {
     if (this.ocrResult?.accuracy_metrics?.ocr_confidence !== undefined) {
       return (this.ocrResult.accuracy_metrics.ocr_confidence * 100).toFixed(1);
     }
-    if (this.ocrResult?.text_blocks && this.ocrResult.text_blocks.length > 0) {
-      const avg = this.ocrResult.text_blocks.reduce((sum, b) => sum + b.confidence, 0) / this.ocrResult.text_blocks.length;
-      return (avg * 100).toFixed(1);
-    }
     return '0.0';
   }
 
   getExtractionCompleteness(): string {
+    // If we have text blocks and structured data, calculate completion percentage
+    if (this.ocrResult?.text_blocks && this.ocrResult.text_blocks.length > 0) {
+      // Count how many form fields are populated
+      const totalFields = Object.keys(this.fields).length;
+      const populatedFields = Object.values(this.fields).filter(value => value && typeof value === 'string' && value.trim()).length;
+      const completeness = totalFields > 0 ? (populatedFields / totalFields) * 100 : 0;
+      return completeness.toFixed(1);
+    }
     // Handle new structure - for PaddleOCR only, show high completeness since we got the raw text
     if (this.ocrResult?.document_metadata?.processing_method === 'paddleocr_only' && this.ocrResult?.raw_ocr_text) {
       return '95.0'; // Show high completeness for successful OCR extraction
@@ -609,5 +684,9 @@ export class ImageUploaderComponent implements OnInit {
       return this.ocrResult.accuracy_metrics.extraction_completeness.toFixed(1);
     }
     return '0.0';
+  }
+
+  returnHome() {
+    window.location.href = 'http://localhost:4200/';
   }
 }
