@@ -8,6 +8,15 @@ from datetime import datetime
 from PIL import Image
 import tempfile
 
+# PDF processing imports
+try:
+    import fitz  # PyMuPDF
+    PDF_SUPPORT = True
+    print("[SUCCESS] PyMuPDF imported - PDF support enabled", file=sys.stderr)
+except ImportError:
+    PDF_SUPPORT = False
+    print("[WARNING] PyMuPDF not found - PDF support disabled", file=sys.stderr)
+
 try:
     from paddleocr import PaddleOCR
     print("[SUCCESS] PaddleOCR imported successfully", file=sys.stderr)
@@ -29,15 +38,113 @@ class FastInsuranceExtractor:
             raise
         self.confidence_scores = {}
     
-    def extract_text(self, image_path):
-        """Fast OCR extraction with minimal preprocessing"""
-        # Verify file exists first
-        if not os.path.exists(image_path):
-            raise FileNotFoundError(f"Image file not found: {image_path}")
+    def convert_pdf_to_images(self, pdf_path):
+        """Convert PDF pages to images for OCR processing"""
+        if not PDF_SUPPORT:
+            raise ImportError("PDF support requires PyMuPDF. Install with: pip install PyMuPDF")
         
-        print(f"[INFO] Processing image: {image_path}", file=sys.stderr)
+        images = []
+        doc = None
+        try:
+            doc = fitz.open(pdf_path)
+            print(f"[INFO] Converting PDF with {len(doc)} pages to images", file=sys.stderr)
+            
+            for page_num in range(len(doc)):
+                page = doc.load_page(page_num)
+                # Convert page to image (300 DPI for good OCR quality)
+                mat = fitz.Matrix(300/72, 300/72)  # 300 DPI scaling
+                pix = page.get_pixmap(matrix=mat)
+                
+                # Save as temporary image with proper file handling
+                temp_fd, temp_path = tempfile.mkstemp(suffix='.png')
+                try:
+                    os.close(temp_fd)  # Close file descriptor immediately
+                    pix.save(temp_path)
+                    images.append(temp_path)
+                    print(f"[INFO] Converted PDF page {page_num + 1}/{len(doc)} to {temp_path}", file=sys.stderr)
+                except Exception as save_error:
+                    print(f"[ERROR] Failed to save page {page_num + 1}: {save_error}", file=sys.stderr)
+                    try:
+                        os.unlink(temp_path)
+                    except:
+                        pass
+                    raise
+            
+            return images
+        except Exception as e:
+            print(f"[ERROR] PDF conversion failed: {e}", file=sys.stderr)
+            raise
+        finally:
+            if doc:
+                doc.close()
+    
+    def extract_text_from_pdf(self, pdf_path):
+        """Extract text from PDF by converting pages to images and running OCR"""
+        print(f"[INFO] Processing PDF: {pdf_path}", file=sys.stderr)
         
-        # Simple OCR call without heavy preprocessing
+        # Convert PDF to images
+        temp_images = self.convert_pdf_to_images(pdf_path)
+        
+        all_text_blocks = []
+        all_detailed_results = []
+        combined_text = []
+        total_confidence = 0
+        total_count = 0
+        
+        try:
+            for i, image_path in enumerate(temp_images):
+                print(f"[INFO] Processing PDF page {i + 1}/{len(temp_images)}", file=sys.stderr)
+                
+                # Process each page image with OCR
+                page_text, page_detailed = self.extract_text_from_image(image_path)
+                
+                print(f"[DEBUG] Page {i + 1} detailed type: {type(page_detailed[0]) if page_detailed else 'empty'}", file=sys.stderr)
+                
+                # Add page separator
+                if combined_text:
+                    combined_text.append(f"\\n--- PAGE {i + 1} ---\\n")
+                combined_text.append(page_text)
+                
+                # Combine detailed results
+                all_detailed_results.extend(page_detailed)
+                
+                # Update confidence tracking
+                if page_detailed:
+                    # Handle tuple format: (bbox, text, confidence)
+                    page_confidences = [item[2] if isinstance(item, tuple) and len(item) >= 3 else 0 for item in page_detailed]
+                    total_confidence += sum(page_confidences)
+                    total_count += len(page_confidences)
+            
+            # Clean up temporary images
+            for temp_image in temp_images:
+                try:
+                    if os.path.exists(temp_image):
+                        os.unlink(temp_image)
+                        print(f"[DEBUG] Cleaned up {temp_image}", file=sys.stderr)
+                except Exception as cleanup_error:
+                    print(f"[WARN] Could not clean up {temp_image}: {cleanup_error}", file=sys.stderr)
+            
+            # Calculate overall confidence
+            if total_count > 0:
+                self.confidence_scores['ocr_confidence'] = total_confidence / total_count
+            
+            combined_raw_text = "\\n".join(combined_text)
+            print(f"[INFO] PDF processing completed: {len(all_detailed_results)} total text blocks", file=sys.stderr)
+            
+            return combined_raw_text, all_detailed_results
+            
+        except Exception as e:
+            # Clean up on error
+            for temp_image in temp_images:
+                try:
+                    if os.path.exists(temp_image):
+                        os.unlink(temp_image)
+                except Exception as cleanup_error:
+                    print(f"[WARN] Error cleanup failed for {temp_image}: {cleanup_error}", file=sys.stderr)
+            raise e
+    
+    def extract_text_from_image(self, image_path):
+        """Extract text from a single image file"""
         try:
             # Use the traditional ocr method to get proper text extraction
             try:
@@ -50,6 +157,25 @@ class FastInsuranceExtractor:
             print(f"[ERROR] OCR processing failed: {e}", file=sys.stderr)
             raise
         
+        return self.process_ocr_result(result)
+    
+    def extract_text(self, file_path):
+        """Fast OCR extraction with minimal preprocessing - supports images and PDFs"""
+        # Verify file exists first
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+        
+        # Check if it's a PDF file
+        if file_path.lower().endswith('.pdf'):
+            return self.extract_text_from_pdf(file_path)
+        
+        print(f"[INFO] Processing image: {file_path}", file=sys.stderr)
+        
+        # Process single image file
+        return self.extract_text_from_image(file_path)
+    
+    def process_ocr_result(self, result):
+        """Process OCR result and extract text blocks with confidence scores"""
         text_blocks = []
         detailed_result = []
         total_confidence = 0
@@ -58,12 +184,10 @@ class FastInsuranceExtractor:
         # Handle PaddleOCR result format - newer versions return OCRResult objects
         print(f"[DEBUG] OCR result type: {type(result)}", file=sys.stderr)
         
-        if isinstance(result, list) and len(result) > 0:
-            page_result = result[0]  # First page
-            print(f"[DEBUG] Page result type: {type(page_result)}", file=sys.stderr)
-            
-            if page_result:  # Check if not None
-                # Check if it's the new OCRResult format (paddlex)
+        if result and len(result) > 0:
+            for page_idx, page_result in enumerate(result):
+                print(f"[DEBUG] Page result type: {type(page_result)}", file=sys.stderr)
+                
                 if hasattr(page_result, 'get') and 'rec_texts' in page_result:
                     # New OCRResult format - extract from rec_texts, dt_polys, rec_scores
                     try:

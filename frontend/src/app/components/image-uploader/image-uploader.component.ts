@@ -69,11 +69,11 @@ export class ImageUploaderComponent implements OnInit {
         this.selectedFile = null;
         this.selectedRawFile = null;
       } else {
-        // Determine if it's an image or text file
-        if (file.type.startsWith('image/')) {
+        // Determine if it's an image, PDF, or text file
+        if (file.type.startsWith('image/') || file.type === 'application/pdf') {
           this.selectedFile = file;
           this.selectedRawFile = null;
-          console.log('Selected image file:', this.selectedFile);
+          console.log('Selected file for OCR processing:', this.selectedFile);
         } else if (file.type === 'text/plain') {
           this.selectedRawFile = file;
           this.selectedFile = null;
@@ -89,13 +89,15 @@ export class ImageUploaderComponent implements OnInit {
   validateFile(file: File): string | null {
     const maxSize = 10 * 1024 * 1024; // 10MB
     const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    const allowedPdfTypes = ['application/pdf'];
     const allowedTextTypes = ['text/plain'];
 
     const isValidImage = allowedImageTypes.includes(file.type);
+    const isValidPdf = allowedPdfTypes.includes(file.type);
     const isValidText = allowedTextTypes.includes(file.type);
 
-    if (!isValidImage && !isValidText) {
-      return 'Please select a valid image file (JPEG, PNG, GIF) or text file (.txt)';
+    if (!isValidImage && !isValidPdf && !isValidText) {
+      return 'Please select a valid image file (JPEG, PNG, GIF), PDF file, or text file (.txt)';
     }
     if (file.size > maxSize) {
       return 'File size must be less than 10MB';
