@@ -167,12 +167,8 @@ class FastInsuranceExtractor:
         
         try:
             # Use the predict method as recommended (replaces deprecated ocr method)
-            try:
-                result = self.ocr.predict(image_path, cls=False)
-            except Exception as fallback_error:
-                # Fallback for different PaddleOCR versions
-                print(f"[WARN] cls parameter failed, using default: {fallback_error}", file=sys.stderr)
-                result = self.ocr.predict(image_path)
+            # Note: cls parameter not supported in predict method, only use_angle_cls in constructor
+            result = self.ocr.predict(image_path)
         except Exception as e:
             print(f"[ERROR] OCR processing failed: {e}", file=sys.stderr)
             raise
