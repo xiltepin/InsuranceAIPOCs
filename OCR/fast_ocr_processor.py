@@ -17,12 +17,9 @@ except ImportError as e:
 
 class FastInsuranceExtractor:
     def __init__(self):
-        # Minimal PaddleOCR setup for speed - force traditional format
+        # Minimal PaddleOCR setup for speed
         try:
-            self.ocr = PaddleOCR(
-                lang='en',
-                use_angle_cls=False  # Disable angle classification for speed
-            )
+            self.ocr = PaddleOCR(lang='en', show_log=False)
             print(f"[INFO] PaddleOCR initialized for fast processing", file=sys.stderr)
         except Exception as e:
             print(f"[ERROR] PaddleOCR initialization failed: {e}", file=sys.stderr)
@@ -31,108 +28,29 @@ class FastInsuranceExtractor:
     
     def extract_text(self, image_path):
         """Fast OCR extraction with minimal preprocessing"""
-        # Verify file exists first
-        if not os.path.exists(image_path):
-            raise FileNotFoundError(f"Image file not found: {image_path}")
-        
-        print(f"[INFO] Processing image: {image_path}", file=sys.stderr)
-        
         # Simple OCR call without heavy preprocessing
-        try:
-            # Use the traditional ocr method to get proper text extraction
-            try:
-                result = self.ocr.ocr(image_path, cls=False)
-            except Exception as fallback_error:
-                # Fallback for different PaddleOCR versions
-                print(f"[WARN] cls parameter failed, using default: {fallback_error}", file=sys.stderr)
-                result = self.ocr.ocr(image_path)
-        except Exception as e:
-            print(f"[ERROR] OCR processing failed: {e}", file=sys.stderr)
-            raise
+        result = self.ocr.ocr(image_path)
         
         text_blocks = []
         detailed_result = []
         total_confidence = 0
         count = 0
         
-        # Handle PaddleOCR result format - newer versions return OCRResult objects
-        print(f"[DEBUG] OCR result type: {type(result)}", file=sys.stderr)
-        
+        # Handle PaddleOCR result format
         if isinstance(result, list) and len(result) > 0:
             page_result = result[0]  # First page
-            print(f"[DEBUG] Page result type: {type(page_result)}", file=sys.stderr)
-            
             if page_result:  # Check if not None
-                # Check if it's the new OCRResult format (paddlex)
-                if hasattr(page_result, 'get') and 'rec_texts' in page_result:
-                    # New OCRResult format - extract from rec_texts, dt_polys, rec_scores
-                    try:
-                        rec_texts = page_result.get('rec_texts', [])
-                        dt_polys = page_result.get('dt_polys', [])
-                        rec_scores = page_result.get('rec_scores', [])
+                for line in page_result:
+                    if len(line) >= 2:
+                        bbox = line[0]
+                        text_info = line[1]
+                        text = text_info[0]
+                        confidence = text_info[1]
                         
-                        print(f"[INFO] Found {len(rec_texts)} text items in OCRResult", file=sys.stderr)
-                        
-                        for i, text in enumerate(rec_texts):
-                            if text and text.strip():  # Only process non-empty text
-                                confidence = rec_scores[i] if i < len(rec_scores) else 0.9
-                                bbox = dt_polys[i] if i < len(dt_polys) else f"bbox_{i}"
-                                
-                                text_blocks.append(text.strip())
-                                detailed_result.append((str(bbox), text.strip(), confidence))
-                                total_confidence += confidence
-                                count += 1
-                                
-                    except Exception as ocr_error:
-                        print(f"[ERROR] OCRResult processing failed: {ocr_error}", file=sys.stderr)
-                        # Fallback to basic iteration
-                        for i, item in enumerate(page_result):
-                            if isinstance(item, str) and item.strip():
-                                text = item.strip()
-                                text_blocks.append(text)
-                                detailed_result.append((f"bbox_{i}", text, 0.9))
-                                total_confidence += 0.9
-                                count += 1
-                                
-                elif isinstance(page_result, (list, tuple)):
-                    # Traditional format [bbox, (text, confidence)]
-                    for i, line in enumerate(page_result):
-                        try:
-                            if isinstance(line, (list, tuple)) and len(line) >= 2:
-                                bbox = line[0]
-                                text_info = line[1]
-                                
-                                # Safely extract text and confidence
-                                if isinstance(text_info, (list, tuple)) and len(text_info) >= 2:
-                                    text = str(text_info[0]) if text_info[0] is not None else ""
-                                    confidence = float(text_info[1]) if text_info[1] is not None else 0.0
-                                else:
-                                    text = str(text_info) if text_info is not None else ""
-                                    confidence = 0.9  # Default confidence
-                                
-                                if text.strip():  # Only add non-empty text
-                                    text_blocks.append(text)
-                                    detailed_result.append((bbox, text, confidence))
-                                    total_confidence += confidence
-                                    count += 1
-                                    
-                        except Exception as line_error:
-                            print(f"[ERROR] Error processing line {i}: {line_error}", file=sys.stderr)
-                            continue  # Skip this line and continue processing
-                            
-                else:
-                    # Unknown format - try basic iteration
-                    print(f"[WARN] Unknown OCR result format, attempting basic iteration", file=sys.stderr)
-                    try:
-                        for i, item in enumerate(page_result):
-                            if isinstance(item, str) and item.strip():
-                                text = item.strip()
-                                text_blocks.append(text)
-                                detailed_result.append((f"bbox_{i}", text, 0.9))
-                                total_confidence += 0.9
-                                count += 1
-                    except Exception as iter_error:
-                        print(f"[ERROR] Basic iteration failed: {iter_error}", file=sys.stderr)
+                        text_blocks.append(text)
+                        detailed_result.append((bbox, text, confidence))
+                        total_confidence += confidence
+                        count += 1
         
         raw_text = "\\n".join(text_blocks).strip()
         avg_confidence = total_confidence / count if count > 0 else 0
@@ -141,16 +59,14 @@ class FastInsuranceExtractor:
         return raw_text, detailed_result
     
     def create_fast_prompt(self, raw_text):
-        """Compact prompt for complete field extraction"""
+        """Ultra-short prompt for maximum processing speed"""
+        # Use only first 600 characters to reduce processing time
+        short_text = raw_text[:600] if len(raw_text) > 600 else raw_text
         
-        prompt = f"""Extract insurance data from this text and return structured JSON:
+        prompt = f"""Extract insurance JSON from: {short_text}
 
-{raw_text[:1800]}
-
-Return this exact structure with data from the text:
-{{"policy_number":"","effective_dates":{{"start":"","end":""}},"policyholder_details":{{"full_name":"","address":"","city_state_zip":"","phone":"","email":"","dob":"","gender":"","marital_status":""}},"policy_information":{{"policy_type":"","issue_date":"","term_length":"","renewal_date":"","agent":"","agent_id":"","office_phone":""}},"insured_vehicle":{{"year":"","make":"","model":"","vin":"","license_plate":"","body_type":"","usage_class":"","mileage":"","garage_zip":""}}}}
-
-Extract policy effective dates from "Effective:" line. Extract values after colons. Return only JSON."""
+Return only this JSON structure:
+{{"policy_number":"","effective_dates":{{"start":"","end":""}},"policyholder_details":{{"full_name":"","address":"","city_state_zip":"","phone":"","email":"","dob":"","gender":"","marital_status":""}},"policy_information":{{"policy_type":"","issue_date":"","term_length":"","renewal_date":"","agent":"","agent_id":"","office_phone":""}},"insured_vehicle":{{"year":"","make":"","model":"","vin":"","license_plate":"","body_type":"","usage_class":"","mileage":"","garage_zip":""}},"driver_profile":{{"primary_driver_name":"","license_no":"","license_date":"","license_status":"","age_group":"","driving_record":"","relationship":""}},"coverage_limits_and_deductibles":[],"discounts_applied":{{"good_driver":"","multi_policy":"","vehicle_safety":"","federal_employee":"","total_savings":""}},"billing_information":{{"payment_method":"","payment_plan":"","monthly_amount":"","next_due_date":"","bank_account":""}}}}"""
         
         return prompt
     
@@ -162,11 +78,15 @@ Extract policy effective dates from "Effective:" line. Extract values after colo
             "prompt": prompt,
             "stream": False,
             "options": {
-                "temperature": 0.0,   # Zero temperature for deterministic output
-                "num_predict": 800,   # Adequate for structured JSON
-                "num_ctx": 1024,     # Smaller context
+                "temperature": 0.01,  # Very low for fast, deterministic responses
+                "top_p": 0.5,        # Reduce choices for speed
+                "num_predict": 800,   # Reduce output length
+                "num_ctx": 1024,     # Small context window
+                "num_batch": 1024,   # Large batch for GPU efficiency
                 "num_gpu": 99,       # Use all GPU layers
-                "repeat_penalty": 1.0
+                "num_thread": 1,     # Minimize CPU threads
+                "repeat_penalty": 1.0,  # No penalty for speed
+                "stop": ["}}", "\\n\\n", "END"]  # Stop tokens for faster completion
             }
         }
         
@@ -180,45 +100,18 @@ Extract policy effective dates from "Effective:" line. Extract values after colo
         return content
     
     def parse_json_response(self, content):
-        """Enhanced JSON parsing with better error handling"""
-        original_content = content
+        """Fast JSON parsing with error handling"""
         content = content.strip()
         
-        # Debug: Print raw AI response (more of it)
-        print(f"[DEBUG] Raw AI response: {content[:500]}...", file=sys.stderr)
-        print(f"[DEBUG] Full response length: {len(content)}", file=sys.stderr)
-        
-        # Find JSON boundaries - look for complete JSON object
+        # Find JSON boundaries
         if '{' in content and '}' in content:
             start = content.find('{')
-            # Find the matching closing brace
-            brace_count = 0
-            end = len(content)  # Default to end if no matching brace found
-            
-            for i in range(start, len(content)):
-                char = content[i]
-                if char == '{':
-                    brace_count += 1
-                elif char == '}':
-                    brace_count -= 1
-                    if brace_count == 0:
-                        end = i + 1
-                        break
-            
-            json_content = content[start:end]
-            print(f"[DEBUG] Extracted JSON length: {len(json_content)}", file=sys.stderr)
-            print(f"[DEBUG] Extracted JSON: {json_content[:200]}...", file=sys.stderr)
-        else:
-            json_content = content
-            print(f"[DEBUG] No braces found, using full content", file=sys.stderr)
+            end = content.rfind('}') + 1
+            content = content[start:end]
         
         try:
-            parsed = json.loads(json_content)
-            print(f"[INFO] Successfully parsed JSON with keys: {list(parsed.keys())}", file=sys.stderr)
-            return parsed
-        except json.JSONDecodeError as e:
-            print(f"[ERROR] JSON parsing failed: {e}", file=sys.stderr)
-            print(f"[ERROR] Attempted to parse: {json_content[:200]}...", file=sys.stderr)
+            return json.loads(content)
+        except json.JSONDecodeError:
             # Fallback: create minimal structure
             return {
                 "policy_number": "",

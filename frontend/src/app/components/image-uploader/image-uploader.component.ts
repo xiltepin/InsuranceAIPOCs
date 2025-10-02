@@ -176,21 +176,30 @@ export class ImageUploaderComponent implements OnInit {
         // Calculate processing times
         this.totalProcessingTime = (Date.now() - this.processingStartTime) / 1000;
         
-        // Check if Ollama was used based on processing method
-        const processingMethod = result.document_metadata?.processing_method || 'paddleocr_only';
-        if (processingMethod.includes('ollama')) {
-          // Estimate that PaddleOCR takes about 30% of total time, Ollama takes 70%
-          this.paddleOcrTime = this.totalProcessingTime * 0.3;
-          this.aiProcessingTime = this.totalProcessingTime * 0.7;
+        // Use actual timing from processing_metrics if available
+        if ((result as any).processing_metrics) {
+          const metrics = (result as any).processing_metrics;
+          this.paddleOcrTime = metrics.paddleocr_time_seconds || 0;
+          this.aiProcessingTime = metrics.ai_processing_time_seconds || 0;
+          this.totalProcessingTime = metrics.total_time_seconds || this.totalProcessingTime;
         } else {
-          // Only PaddleOCR was used
-          this.paddleOcrTime = this.totalProcessingTime;
-          this.aiProcessingTime = 0;
+          // Fallback estimation
+          const processingMethod = result.document_metadata?.processing_method || 'paddleocr_only';
+          if (processingMethod.includes('ollama')) {
+            this.paddleOcrTime = this.totalProcessingTime * 0.3;
+            this.aiProcessingTime = this.totalProcessingTime * 0.7;
+          } else {
+            this.paddleOcrTime = this.totalProcessingTime;
+            this.aiProcessingTime = 0;
+          }
         }
         
         this.isProcessing = false;
         this.progress = 100;
         this.statusMessage = 'Finished';
+        
+        // Force immediate UI update
+        this.cdr.detectChanges();
         clearInterval(progressInterval);
       },
       error: (err) => {
@@ -242,6 +251,9 @@ export class ImageUploaderComponent implements OnInit {
           this.isProcessing = false;
           this.progress = 100;
           this.statusMessage = 'Finished';
+          
+          // Force change detection for immediate UI update
+          this.cdr.detectChanges();
           console.log('FRONTEND: UI updated, processing complete');
         },
         error: (err) => {
@@ -257,43 +269,20 @@ export class ImageUploaderComponent implements OnInit {
   }
 
   populateFieldsFromOcr(result: any): void {
-    console.log('=== PROCESSING OCR RESULT ===');
-    console.log('Processing method:', result.document_metadata?.processing_method);
-    console.log('Has raw_ocr_text:', !!result.raw_ocr_text);
-    console.log('Has structured data:', !!result.policyholder_details);
+    console.log('=== PROCESSING OCR RESULT (FAST MODE) ===');
     
-    // Handle both PaddleOCR-only and Ollama-enhanced results
-    if (result.raw_ocr_text) {
-      console.log('Processing result with raw OCR text');
-      
-      // Create a simple text block structure for display
-      result.text_blocks = [{
-        text: result.raw_ocr_text,
-        confidence: result.confidence_assessment?.ocr_confidence || 0.99,
-        bbox: 'Full Document'
-      }];
-      result.full_text = result.raw_ocr_text;
-      
-      // Check if we have Ollama-enhanced structured data
-      if (result.policyholder_details || result.policy_information || result.insured_vehicle) {
-        console.log('Using Ollama-enhanced structured data');
-        // Use structured data from Ollama
-        this.populateFromStructuredData(result);
-      } else {
-        console.log('Falling back to pattern matching on raw text');
-        // Fallback to pattern matching for raw text
-        this.extractBasicInfoFromRawText(result.raw_ocr_text);
-      }
-    } else {
-      console.log('Processing legacy structured result');
-      // Handle legacy structured results
+    // Optimized: Direct structured data processing - skip complex checks
+    if (result.policyholder_details || result.policy_information || result.insured_vehicle) {
+      console.log('Using Ollama-enhanced structured data (FAST)');
       this.populateFromStructuredData(result);
+    } else if (result.raw_ocr_text) {
+      console.log('Processing raw text (FAST)');
+      result.full_text = result.raw_ocr_text;
+      this.extractBasicInfoFromRawText(result.raw_ocr_text);
     }
-
-    // Always try post-processing for additional field extraction
-    if (result.raw_ocr_text) {
-      this.postProcessExtraction(result.raw_ocr_text);
-    }
+    
+    // Skip post-processing for faster UI updates (can be optional)
+    // this.postProcessExtraction(result.raw_ocr_text); // Commented out for speed
   }
 
   populateFromStructuredData(result: any): void {
@@ -659,6 +648,11 @@ export class ImageUploaderComponent implements OnInit {
   }
 
   getConfidenceScore(): string {
+    // First, check for text_blocks (prioritized as it's most accurate)
+    if (this.ocrResult?.text_blocks && this.ocrResult.text_blocks.length > 0) {
+      const avg = this.ocrResult.text_blocks.reduce((sum: number, b: any) => sum + (b.confidence || 0), 0) / this.ocrResult.text_blocks.length;
+      return (avg * 100).toFixed(1);
+    }
     // Handle new structure with confidence_assessment
     if (this.ocrResult?.confidence_assessment?.ocr_confidence !== undefined) {
       return (this.ocrResult.confidence_assessment.ocr_confidence * 100).toFixed(1);
@@ -667,14 +661,18 @@ export class ImageUploaderComponent implements OnInit {
     if (this.ocrResult?.accuracy_metrics?.ocr_confidence !== undefined) {
       return (this.ocrResult.accuracy_metrics.ocr_confidence * 100).toFixed(1);
     }
-    if (this.ocrResult?.text_blocks && this.ocrResult.text_blocks.length > 0) {
-      const avg = this.ocrResult.text_blocks.reduce((sum, b) => sum + b.confidence, 0) / this.ocrResult.text_blocks.length;
-      return (avg * 100).toFixed(1);
-    }
     return '0.0';
   }
 
   getExtractionCompleteness(): string {
+    // If we have text blocks and structured data, calculate completion percentage
+    if (this.ocrResult?.text_blocks && this.ocrResult.text_blocks.length > 0) {
+      // Count how many form fields are populated
+      const totalFields = Object.keys(this.fields).length;
+      const populatedFields = Object.values(this.fields).filter(value => value && typeof value === 'string' && value.trim()).length;
+      const completeness = totalFields > 0 ? (populatedFields / totalFields) * 100 : 0;
+      return completeness.toFixed(1);
+    }
     // Handle new structure - for PaddleOCR only, show high completeness since we got the raw text
     if (this.ocrResult?.document_metadata?.processing_method === 'paddleocr_only' && this.ocrResult?.raw_ocr_text) {
       return '95.0'; // Show high completeness for successful OCR extraction
