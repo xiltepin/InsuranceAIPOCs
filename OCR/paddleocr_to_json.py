@@ -25,18 +25,35 @@ except ImportError as e:
     sys.exit(1)
 
 class FastInsuranceExtractor:
-    def __init__(self):
-        # Minimal PaddleOCR setup for speed - force traditional format
-        try:
-            self.ocr = PaddleOCR(
-                lang='en',
-                use_angle_cls=False  # Disable angle classification for speed
-            )
-            print(f"[INFO] PaddleOCR initialized for fast processing", file=sys.stderr)
-        except Exception as e:
-            print(f"[ERROR] PaddleOCR initialization failed: {e}", file=sys.stderr)
-            raise
+    def __init__(self, init_ocr=True):
+        # Initialize OCR only if needed (for images/PDFs)
+        self.ocr = None
+        if init_ocr:
+            try:
+                self.ocr = PaddleOCR(
+                    lang='en',
+                    use_textline_orientation=False  # Updated parameter name to avoid deprecation
+                )
+                print(f"[INFO] PaddleOCR initialized for fast processing", file=sys.stderr)
+            except Exception as e:
+                print(f"[ERROR] PaddleOCR initialization failed: {e}", file=sys.stderr)
+                raise
+        else:
+            print(f"[INFO] Skipping PaddleOCR initialization for text-only processing", file=sys.stderr)
         self.confidence_scores = {}
+    
+    def _ensure_ocr_initialized(self):
+        """Initialize OCR if not already done (lazy initialization)"""
+        if self.ocr is None:
+            try:
+                self.ocr = PaddleOCR(
+                    lang='en',
+                    use_textline_orientation=False
+                )
+                print(f"[INFO] PaddleOCR initialized (lazy loading)", file=sys.stderr)
+            except Exception as e:
+                print(f"[ERROR] PaddleOCR initialization failed: {e}", file=sys.stderr)
+                raise
     
     def convert_pdf_to_images(self, pdf_path):
         """Convert PDF pages to images for OCR processing"""
@@ -145,34 +162,62 @@ class FastInsuranceExtractor:
     
     def extract_text_from_image(self, image_path):
         """Extract text from a single image file"""
+        # Ensure OCR is initialized for image processing
+        self._ensure_ocr_initialized()
+        
         try:
-            # Use the traditional ocr method to get proper text extraction
+            # Use the predict method as recommended (replaces deprecated ocr method)
             try:
-                result = self.ocr.ocr(image_path, cls=False)
+                result = self.ocr.predict(image_path, cls=False)
             except Exception as fallback_error:
                 # Fallback for different PaddleOCR versions
                 print(f"[WARN] cls parameter failed, using default: {fallback_error}", file=sys.stderr)
-                result = self.ocr.ocr(image_path)
+                result = self.ocr.predict(image_path)
         except Exception as e:
             print(f"[ERROR] OCR processing failed: {e}", file=sys.stderr)
             raise
         
         return self.process_ocr_result(result)
     
+    def extract_text_from_txt(self, txt_path):
+        """Extract text from a plain text file"""
+        print(f"[INFO] Processing text file: {txt_path}", file=sys.stderr)
+        
+        try:
+            with open(txt_path, 'r', encoding='utf-8') as file:
+                raw_text = file.read()
+            
+            print(f"[INFO] Loaded text file with {len(raw_text)} characters", file=sys.stderr)
+            
+            # Create fake detailed results for consistency with OCR pipeline
+            lines = raw_text.split('\n')
+            detailed_result = []
+            
+            for i, line in enumerate(lines):
+                if line.strip():
+                    detailed_result.append((f"Line_{i+1}", line.strip(), 1.0))
+            
+            return raw_text, detailed_result
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to read text file: {e}", file=sys.stderr)
+            raise
+
     def extract_text(self, file_path):
-        """Fast OCR extraction with minimal preprocessing - supports images and PDFs"""
+        """Fast text extraction - supports images, PDFs, and text files"""
         # Verify file exists first
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
         
-        # Check if it's a PDF file
+        # Check file type and process accordingly
         if file_path.lower().endswith('.pdf'):
             return self.extract_text_from_pdf(file_path)
-        
-        print(f"[INFO] Processing image: {file_path}", file=sys.stderr)
-        
-        # Process single image file
-        return self.extract_text_from_image(file_path)
+        elif file_path.lower().endswith('.txt'):
+            return self.extract_text_from_txt(file_path)
+        else:
+            print(f"[INFO] Processing image: {file_path}", file=sys.stderr)
+            # Process as image file
+            return self.extract_text_from_image(file_path)
     
     def process_ocr_result(self, result):
         """Process OCR result and extract text blocks with confidence scores"""
@@ -265,37 +310,124 @@ class FastInsuranceExtractor:
         return raw_text, detailed_result
     
     def create_fast_prompt(self, raw_text):
-        """Compact prompt for complete field extraction"""
+        """Optimized prompt with comprehensive field extraction and better matching"""
         
-        prompt = f"""Extract insurance data from this text and return structured JSON:
+        # Clean and filter the raw text to focus on important information
+        cleaned_text = self.filter_important_text(raw_text)
+        
+        # Adjust text length based on content size to prevent timeouts
+        max_length = min(1000, len(cleaned_text))  # Cap at 1000 chars to prevent timeouts
+        text_snippet = cleaned_text[:max_length]
+        
+        # More direct and explicit prompt for better field extraction
+        prompt = f"""Extract data from this insurance document text and return JSON:
 
-{raw_text[:1800]}
+{text_snippet}
 
-Return this exact structure with data from the text:
+Extract these fields into nested JSON structure:
+
+POLICY LEVEL:
+- policy_number: Text immediately after "Policy Number:" or alphanumeric code starting with letters
+
+EFFECTIVE DATES:
+- start: Date after "Effective Date:", "Effective:" (format: Month Day, Year)
+- end: Date after "Expiration:", "Expiration Date:" or second date after effective
+
+POLICYHOLDER DETAILS:
+- full_name: Text after "Full Name:", "Name:", or under "NAMED INSURED" section
+- address: Text after "Address:" label
+- city_state_zip: Text after "City/State/ZIP:", "City/State:", or combine city and state info
+- phone: Phone number pattern after "Phone:" label
+- email: Email address pattern after "Email:" label
+- dob: Date after "DOB:", "Date of Birth:" label
+- gender: Text after "Gender:" label
+- marital_status: Text after "Marital Status:" label
+
+POLICY INFORMATION:
+- policy_type: Text after "Policy Type:" label
+- issue_date: Date after "Issue Date:" label (if available)
+- term_length: Text after "Term:" or "Term Length:" label
+- renewal_date: Date after "Renewal Date:" or calculate from effective + term
+- agent: Name after "Agent:" label
+- agent_id: Code/ID after "Agent ID:" label (if available)
+- office_phone: Phone number after "Agent Phone:" or "Office Phone:" label
+
+INSURED VEHICLE:
+- year: 4-digit year from "Year/Make/Model:" or vehicle description
+- make: Brand name from "Year/Make/Model:" or vehicle description  
+- model: Model name from "Year/Make/Model:" or vehicle description
+- vin: Alphanumeric code after "VIN:" or "VIN Number:"
+- license_plate: Plate number after "License Plate:" label
+- body_type: Vehicle type after "Body Type:" label (if available)
+- usage_class: Text after "Usage:" or "Usage Class:" label
+- mileage: Number + "miles" after "Annual Mileage:" label
+- garage_zip: ZIP code from address or after garaging info
+
+Return JSON with this EXACT structure:
 {{"policy_number":"","effective_dates":{{"start":"","end":""}},"policyholder_details":{{"full_name":"","address":"","city_state_zip":"","phone":"","email":"","dob":"","gender":"","marital_status":""}},"policy_information":{{"policy_type":"","issue_date":"","term_length":"","renewal_date":"","agent":"","agent_id":"","office_phone":""}},"insured_vehicle":{{"year":"","make":"","model":"","vin":"","license_plate":"","body_type":"","usage_class":"","mileage":"","garage_zip":""}}}}
 
-Extract policy effective dates from "Effective:" line. Extract values after colons. Return only JSON."""
+Match patterns exactly as they appear after the labels. Return only JSON."""
         
         return prompt
     
+    def filter_important_text(self, raw_text):
+        """Filter OCR text to focus on insurance-relevant content"""
+        lines = raw_text.split('\n')
+        important_lines = []
+        
+        # Keywords that indicate important insurance information (generic patterns only)
+        important_keywords = [
+            'policy', 'effective', 'policyholder', 'insured', 'vehicle', 
+            'year', 'make', 'model', 'vin', 'phone', 'address', 'name', 'full name',
+            'coverage', 'premium', 'deductible', 'liability', 'collision',
+            'term', 'renewal', 'agent', 'producer', 'broker', 'office',
+            'license', 'plate', 'body', 'usage', 'mileage', 'garage', 'garaging',
+            'months', 'date', 'zip', 'gender', 'married', 'single', 'email',
+            'named', 'expiration', 'birth', 'automobile', 'farm'
+        ]
+        
+        for line in lines:
+            line_lower = line.lower().strip()
+            if any(keyword in line_lower for keyword in important_keywords):
+                important_lines.append(line.strip())
+            # Also include lines with numbers (likely dates, policy numbers, etc.)
+            elif any(char.isdigit() for char in line) and len(line.strip()) > 3:
+                important_lines.append(line.strip())
+        
+        # If we filtered too much, fall back to original text
+        if len(important_lines) < 5:
+            return raw_text
+        
+        filtered_text = '\n'.join(important_lines)
+        print(f"[INFO] Filtered text from {len(raw_text)} to {len(filtered_text)} characters", file=sys.stderr)
+        return filtered_text
+    
     def fast_ollama_call(self, prompt):
-        """Optimized Ollama API call for speed"""
+        """Highly optimized Ollama API call with improved context and parameters"""
         url = "http://127.0.0.1:11434/api/generate"
+        
+        # Log the actual prompt being sent for debugging
+        print(f"[INFO] Sending prompt to Ollama (length: {len(prompt)} chars)", file=sys.stderr)
+        print(f"[DEBUG] Prompt preview: {prompt[:200]}...", file=sys.stderr)
+        
         payload = {
             "model": "llama3.2:3b",
             "prompt": prompt,
             "stream": False,
             "options": {
                 "temperature": 0.0,   # Zero temperature for deterministic output
-                "num_predict": 800,   # Adequate for structured JSON
-                "num_ctx": 1024,     # Smaller context
+                "num_predict": 600,   # Increased for more complete field extraction
+                "num_ctx": 4096,     # Increased context size to handle larger prompts
                 "num_gpu": 99,       # Use all GPU layers
-                "repeat_penalty": 1.0
+                "repeat_penalty": 1.0,
+                "top_p": 0.2,        # Slightly increased for better field matching
+                "top_k": 20          # Increased for better vocabulary access
             }
         }
         
         headers = {"Content-Type": "application/json"}
-        resp = requests.post(url, data=json.dumps(payload), headers=headers, timeout=60)
+        # Increase timeout for larger text files and add retry logic
+        resp = requests.post(url, data=json.dumps(payload), headers=headers, timeout=120)
         resp.raise_for_status()
         
         response_data = resp.json()
@@ -343,17 +475,40 @@ Extract policy effective dates from "Effective:" line. Extract values after colo
         except json.JSONDecodeError as e:
             print(f"[ERROR] JSON parsing failed: {e}", file=sys.stderr)
             print(f"[ERROR] Attempted to parse: {json_content[:200]}...", file=sys.stderr)
-            # Fallback: create minimal structure
+            # Fallback: create structure matching Angular frontend expectations
             return {
                 "policy_number": "",
                 "effective_dates": {"start": "", "end": ""},
-                "policyholder_details": {"full_name": "", "address": "", "city_state_zip": "", "phone": "", "email": "", "dob": "", "gender": "", "marital_status": ""},
-                "policy_information": {"policy_type": "", "issue_date": "", "term_length": "", "renewal_date": "", "agent": "", "agent_id": "", "office_phone": ""},
-                "insured_vehicle": {"year": "", "make": "", "model": "", "vin": "", "license_plate": "", "body_type": "", "usage_class": "", "mileage": "", "garage_zip": ""},
-                "driver_profile": {"primary_driver_name": "", "license_no": "", "license_date": "", "license_status": "", "age_group": "", "driving_record": "", "relationship": ""},
-                "coverage_limits_and_deductibles": [],
-                "discounts_applied": {"good_driver": "", "multi_policy": "", "vehicle_safety": "", "federal_employee": "", "total_savings": ""},
-                "billing_information": {"payment_method": "", "payment_plan": "", "monthly_amount": "", "next_due_date": "", "bank_account": ""}
+                "policyholder_details": {
+                    "full_name": "",
+                    "address": "",
+                    "city_state_zip": "",
+                    "phone": "",
+                    "email": "",
+                    "dob": "",
+                    "gender": "",
+                    "marital_status": ""
+                },
+                "policy_information": {
+                    "policy_type": "",
+                    "issue_date": "",
+                    "term_length": "",
+                    "renewal_date": "",
+                    "agent": "",
+                    "agent_id": "",
+                    "office_phone": ""
+                },
+                "insured_vehicle": {
+                    "year": "",
+                    "make": "",
+                    "model": "",
+                    "vin": "",
+                    "license_plate": "",
+                    "body_type": "",
+                    "usage_class": "",
+                    "mileage": "",
+                    "garage_zip": ""
+                }
             }
     
     def process_document(self, image_path):
@@ -464,16 +619,20 @@ if __name__ == "__main__":
             print(f"[ERROR] Error processing raw text: {e}", file=sys.stderr)
             sys.exit(1)
     
-    # Handle image processing
+    # Handle file processing (images, PDFs, or text files)
     if len(sys.argv) > 1 and not sys.argv[1].startswith("--"):
-        image_path = sys.argv[1]
+        file_path = sys.argv[1]
     else:
-        print("[ERROR] No image path provided", file=sys.stderr)
+        print("[ERROR] No file path provided", file=sys.stderr)
         sys.exit(1)
     
     try:
-        extractor = FastInsuranceExtractor()
-        result = extractor.process_document(image_path)
+        # Check if it's a text file to optimize initialization
+        is_text_file = file_path.lower().endswith('.txt')
+        
+        # Initialize extractor with or without OCR based on file type
+        extractor = FastInsuranceExtractor(init_ocr=not is_text_file)
+        result = extractor.process_document(file_path)
         print(json.dumps(result, ensure_ascii=False, indent=2))
     except Exception as e:
         print(f"[ERROR] Processing failed: {e}", file=sys.stderr)
