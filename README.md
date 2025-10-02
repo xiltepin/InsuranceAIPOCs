@@ -43,7 +43,7 @@ PCO/
 │   └── package.json                        # Dependencies & scripts
 └── OCR/                        # Python Processing Engine
     ├── paddleocr_to_json.py               # Main OCR + AI processor
-    ├── fast_ocr_processor.py              # Performance-optimized version
+  # ...existing code...
     ├── test_data/
     │   └── Test-Geico.jpg                 # Sample insurance document
     ├── raw_data/                          # Raw OCR outputs
@@ -691,7 +691,7 @@ watch -n 1 nvidia-smi
 │   └── main.ts                                              # Server configuration
 └── OCR/
     ├── paddleocr_to_json.py                                 # Main OCR processor
-    ├── fast_ocr_processor.py                               # Performance-optimized version
+  # ...existing code...
     └── test_data/Test-Geico.jpg                            # Sample document
 ```
 
