@@ -1,1 +1,201 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global Insurance Portal Styles */
+
+// Design Tokens
+:root {
+  // Brand Colors
+  --primary-blue: #1da1f2;
+  --primary-blue-dark: #0d8ddb;
+  --disabled-gray: #b0b8c1;
+  --secondary-gray: #6c757d;
+  --secondary-gray-dark: #5a6268;
+  
+  // Risk Colors
+  --risk-low: #10b981;
+  --risk-medium: #f59e0b;
+  --risk-high: #ef4444;
+  --risk-very-high: #dc2626;
+  
+  // Background Colors
+  --bg-primary: #f9fafb;
+  --bg-card: #ffffff;
+  --bg-dark: #181818;
+  
+  // Text Colors
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  
+  // Shadows
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 2px 16px rgba(0, 0, 0, 0.18);
+}
+
+// Global Reset
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+// Common UI Components
+.header {
+  margin-bottom: 2rem;
+  
+  .logo {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+  
+  .subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+  }
+}
+
+.action-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  justify-content: flex-start;
+}
+
+// Standardized Button System
+.action-btn {
+  display: inline-block;
+  padding: 0.6rem 1.5rem;
+  background: var(--primary-blue);
+  color: #fff;
+  border-radius: 9999px;
+  cursor: pointer;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+  margin-right: 1rem;
+  border: none;
+  text-decoration: none;
+
+  &:hover:not(:disabled) {
+    background: var(--primary-blue-dark);
+  }
+
+  &:disabled {
+    background: var(--disabled-gray);
+    color: #eee;
+    cursor: not-allowed;
+  }
+
+  &.secondary {
+    background: var(--secondary-gray);
+    
+    &:hover:not(:disabled) {
+      background: var(--secondary-gray-dark);
+    }
+  }
+
+  &.btn-stop {
+    background: var(--risk-high);
+    
+    &:hover:not(:disabled) {
+      background: var(--risk-very-high);
+    }
+  }
+
+  &.return-home {
+    background: var(--primary-blue);
+    
+    &:hover:not(:disabled) {
+      background: var(--primary-blue-dark);
+    }
+  }
+}
+
+// Common Card Component
+.card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+  }
+}
+
+// Risk Badge System
+.risk-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  color: white !important;
+  min-width: 100px;
+  box-sizing: border-box;
+  
+  .risk-score {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  
+  .risk-label {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+  }
+
+  &.risk-low {
+    background-color: var(--risk-low) !important;
+  }
+
+  &.risk-medium {
+    background-color: var(--risk-medium) !important;
+  }
+
+  &.risk-high {
+    background-color: var(--risk-high) !important;
+  }
+
+  &.risk-very-high {
+    background-color: var(--risk-very-high) !important;
+  }
+}
+
+// Utility Classes
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }
+
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+
+.p-1 { padding: 0.5rem; }
+.p-2 { padding: 1rem; }
+.p-3 { padding: 1.5rem; }
+
+// Responsive Grid System
+.grid {
+  display: grid;
+  gap: 1.5rem;
+  
+  &.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  &.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  &.auto-fit { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+}

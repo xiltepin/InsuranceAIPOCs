@@ -1,8 +1,14 @@
 <div class="risk-dashboard">
-  <header class="dashboard-header">
-    <h1>Risk Assessment Dashboard</h1>
+  <header class="header">
+    <h1 class="logo">Risk Assessment Dashboard</h1>
     <p class="subtitle">Risk Assessment & Dynamic Pricing Dashboard</p>
   </header>
+
+  <div class="action-row">
+    <button class="action-btn return-home" (click)="returnHome()">
+      Return Home
+    </button>
+  </div>
 
   <div class="dashboard-grid">
     <!-- Driver List -->
@@ -20,7 +26,7 @@
                [style.background-color]="getRiskColor(driver.category)"
                [style.--risk-bg-color]="getRiskColor(driver.category)">
             <span class="risk-score">{{ driver.riskScore }}</span>
-            <span class="risk-label">{{ getJapaneseRiskLabel(driver.category) }}</span>
+            <span class="risk-label">{{ getRiskLabel(driver.category) }}</span>
           </div>
         </div>
       </div>
@@ -35,7 +41,7 @@
           <span class="score-max">/100</span>
         </div>
         <div class="score-details">
-          <h3>{{ getJapaneseRiskLabel(currentRiskScore.riskCategory) }}</h3>
+          <h3>{{ getRiskLabel(currentRiskScore.riskCategory) }}</h3>
           <p>Recommended Premium: ¥{{ currentRiskScore.recommendedPremium.toLocaleString() }}</p>
           <p class="discount" *ngIf="currentRiskScore.discount > 0">
             Discount: ¥{{ currentRiskScore.discount.toLocaleString() }}
@@ -65,7 +71,7 @@
           <option value="elderly">Elderly Driver (68 years old)</option>
           <option value="safeDriving">Safe Driver (40 years old)</option>
         </select>
-        <button (click)="simulateScenario()" [disabled]="loading" class="btn-primary">
+        <button (click)="simulateScenario()" [disabled]="loading" class="action-btn">
           {{ loading ? 'Running Simulation...' : 'Run Simulation' }}
         </button>
       </div>
@@ -95,7 +101,7 @@
           </div>
         </div>
       </div>
-      <button class="btn-secondary" routerLink="/risk-assessment/iot-monitor">
+      <button class="action-btn secondary" routerLink="/risk-assessment/iot-monitor">
         Real-time Monitoring
       </button>
     </section>

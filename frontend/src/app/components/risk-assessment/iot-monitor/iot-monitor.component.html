@@ -8,19 +8,24 @@
       <button 
         *ngIf="!isMonitoring" 
         (click)="startMonitoring()" 
-        class="btn-start">
+        class="action-btn">
         Start Monitoring
       </button>
       <button 
         *ngIf="isMonitoring" 
         (click)="stopMonitoring()" 
-        class="btn-stop">
+        class="action-btn btn-stop">
         Stop Monitoring
       </button>
       <button 
         (click)="resetTrip()" 
-        class="btn-reset">
+        class="action-btn secondary">
         Reset Trip
+      </button>
+      <button 
+        (click)="returnHome()" 
+        class="action-btn return-home">
+        Return Home
       </button>
     </div>
   </header>

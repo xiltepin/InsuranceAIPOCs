@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { RiskAssessmentService } from '../../../services/risk-assessment/risk-assessment.service';
 import { interval, Subscription } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
@@ -35,7 +35,7 @@ export class IoTMonitorComponent implements OnInit, OnDestroy {
   tripDistance = 0;
   tripDuration = 0;
 
-  constructor(private riskService: RiskAssessmentService) {}
+  constructor(private riskService: RiskAssessmentService, private router: Router) {}
 
   ngOnInit() {
     this.loadInitialData();
@@ -172,5 +172,9 @@ export class IoTMonitorComponent implements OnInit, OnDestroy {
     this.safetyScore = 85;
     this.metricsHistory = [];
     this.alerts = [];
+  }
+
+  returnHome() {
+    this.router.navigate(['/']);
   }
 }

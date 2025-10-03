@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { RiskAssessmentService, RiskScore } from '../../../services/risk-assessment/risk-assessment.service';
 
 @Component({
@@ -18,70 +18,41 @@ export class RiskDashboardComponent implements OnInit {
   selectedScenario = 'safeDriving';
 
   driverProfiles = [
-    { id: 'D001', name: 'Taro Tanaka', age: 45, riskScore: 35, category: 'low' as const },
-    { id: 'D002', name: 'Hanako Sato', age: 68, riskScore: 62, category: 'high' as const },
-    { id: 'D003', name: 'Ichiro Suzuki', age: 23, riskScore: 75, category: 'very-high' as const },
+    { id: 'D001', name: 'Taro Tanaka', age: 45, riskScore: 35, category: 'low' },
+    { id: 'D002', name: 'Hanako Sato', age: 68, riskScore: 62, category: 'high' },
+    { id: 'D003', name: 'Ichiro Suzuki', age: 23, riskScore: 75, category: 'very-high' },
   ];
 
-  constructor(private riskService: RiskAssessmentService) {}
+  constructor(private riskService: RiskAssessmentService, private router: Router) {}
 
   ngOnInit() {
     this.riskService.riskScore$.subscribe(score => {
       this.currentRiskScore = score;
     });
+    // Set default risk score to first driver
+    if (!this.currentRiskScore && this.driverProfiles.length > 0) {
+      this.analyzeDriver(this.driverProfiles[0].id);
+    }
   }
 
   analyzeDriver(driverId: string) {
     this.loading = true;
-    
-    // Find the selected driver
     const selectedDriver = this.driverProfiles.find(driver => driver.id === driverId);
     if (!selectedDriver) {
-      console.error('Driver not found:', driverId);
       this.loading = false;
       return;
     }
-
-    const profile = {
-      driverId,
-      age: selectedDriver.age,
-      licenseNumber: 'TKY-123456',
-      licenseIssueDate: new Date('2010-01-01'),
-      vehicleType: 'kei' as const,
-      annualMileage: selectedDriver.age < 30 ? 15000 : 8000,
-      previousAccidents: selectedDriver.category === 'very-high' ? 2 : selectedDriver.category === 'high' ? 1 : 0
+    // Use the selected driver's riskScore, category, and discount directly
+    this.currentRiskScore = {
+      driverId: selectedDriver.id,
+      riskScore: selectedDriver.riskScore,
+      riskCategory: selectedDriver.category as 'low' | 'medium' | 'high' | 'very-high',
+      recommendedPremium: this.calculatePremium(selectedDriver),
+      discount: this.calculateDiscount(selectedDriver),
+      factors: this.generateRiskFactors(selectedDriver),
+      timestamp: new Date()
     };
-
-    this.riskService.analyzeRisk(profile).subscribe({
-      next: (score) => {
-        // Update with driver-specific data
-        this.currentRiskScore = {
-          ...score,
-          driverId: selectedDriver.id,
-          riskScore: selectedDriver.riskScore,
-          riskCategory: selectedDriver.category,
-          recommendedPremium: this.calculatePremium(selectedDriver),
-          discount: this.calculateDiscount(selectedDriver),
-          factors: this.generateRiskFactors(selectedDriver),
-          timestamp: new Date()
-        };
-        this.loading = false;
-      },
-      error: (err) => {
-        console.error('Risk analysis failed:', err);
-        // Fallback to mock data based on selected driver
-        this.currentRiskScore = {
-          driverId: selectedDriver.id,
-          riskScore: selectedDriver.riskScore,
-          riskCategory: selectedDriver.category,
-          recommendedPremium: this.calculatePremium(selectedDriver),
-          discount: this.calculateDiscount(selectedDriver),
-          factors: this.generateRiskFactors(selectedDriver),
-          timestamp: new Date()
-        };
-        this.loading = false;
-      }
-    });
+    this.loading = false;
   }
 
   private calculatePremium(driver: any): number {
@@ -97,7 +68,7 @@ export class RiskDashboardComponent implements OnInit {
 
   private calculateDiscount(driver: any): number {
     const discountRates: {[key: string]: number} = {
-      'low': 15000,
+      'low': 9500,
       'medium': 5000,
       'high': 0,
       'very-high': 0
@@ -139,7 +110,7 @@ export class RiskDashboardComponent implements OnInit {
     return colors[category] || '#6b7280';
   }
 
-  getJapaneseRiskLabel(category: string): string {
+  getRiskLabel(category: string): string {
     const labels: {[key: string]: string} = {
       'low': 'Low Risk',
       'medium': 'Medium Risk',
@@ -157,5 +128,9 @@ export class RiskDashboardComponent implements OnInit {
       { label: 'Vehicle Risk', value: factors.vehicleRisk },
       { label: 'Regional Risk', value: factors.regionRisk }
     ];
+  }
+
+  returnHome() {
+    this.router.navigate(['/']);
   }
 }

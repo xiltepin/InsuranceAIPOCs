@@ -45,7 +45,7 @@ import { Router } from '@angular/router';
       justify-content: center;
     }
     .go-btn {
-      background: #007bff;
+      background: #1da1f2;
       color: #fff;
       border: none;
       border-radius: 6px;
@@ -56,13 +56,13 @@ import { Router } from '@angular/router';
       transition: background 0.2s;
     }
     .go-btn:hover {
-      background: #0056b3;
+      background: #0d8ddb;
     }
     .risk-btn {
-      background: #28a745;
+      background: #1da1f2;
     }
     .risk-btn:hover {
-      background: #218838;
+      background: #0d8ddb;
     }
   `]
 })

@@ -41,32 +41,7 @@
     font-size: 0.95rem;
   }
   
-  .btn-start {
-    background: #10b981;
-    color: white;
-    
-    &:hover {
-      background: #059669;
-    }
-  }
-  
-  .btn-stop {
-    background: #ef4444;
-    color: white;
-    
-    &:hover {
-      background: #dc2626;
-    }
-  }
-  
-  .btn-reset {
-    background: #f3f4f6;
-    color: #374151;
-    
-    &:hover {
-      background: #e5e7eb;
-    }
-  }
+  // Button styles moved to global styles.scss
 }
 
 .monitor-grid {
