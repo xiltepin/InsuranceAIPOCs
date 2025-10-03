@@ -571,21 +571,33 @@
   /* Page title: white text on blue background (#1da1f2) */
   .page-title {
     width: 100%;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     max-width: 920px;
-    margin: 0 auto 1rem;
+    /* Give breathing room from top of viewport */
+    margin: 1.5rem auto 1rem;
     background: #1da1f2;
     color: #ffffff;
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    box-shadow: 0 1px 0 rgba(0,0,0,0.04) inset;
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(26,115,232,0.12), 0 1px 0 rgba(0,0,0,0.04) inset;
   }
   .page-title h1 {
     margin: 0;
     color: #ffffff;
-    font-size: 1.15rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+  }
+
+  @media (max-width: 700px) {
+    .page-title {
+      margin: 1rem 0 0.75rem;
+      padding: 0.9rem 1rem;
+      border-radius: 8px;
+    }
+    .page-title h1 { font-size: 1.05rem; }
   }
 
   .main-content {

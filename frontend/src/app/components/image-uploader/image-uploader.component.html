@@ -268,40 +268,82 @@
         <div class="card-body">
           <div class="two-cols">
             <div class="form-row">
-              <label class="label-with-icon">Primary Driver:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- user SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.2"/>
+                  </svg>
+                </span>Primary Driver:</label>
               <input type="text" [(ngModel)]="fields.primary_driver" name="primary_driver" [readonly]="true" placeholder="Primary Driver" />
             </div>
             <div class="form-row">
-              <label class="label-with-icon">License No:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- id card SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="1.2"/>
+                    <circle cx="9" cy="10" r="2" stroke="currentColor" stroke-width="1.2"/>
+                    <path d="M15 8h4M15 12h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                  </svg>
+                </span>License No:</label>
               <input type="text" [(ngModel)]="fields.license_no" name="license_no" [readonly]="true" placeholder="License Number" />
             </div>
           </div>
 
           <div class="two-cols">
             <div class="form-row">
-              <label class="label-with-icon">License Date:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- calendar SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.2"/>
+                    <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                  </svg>
+                </span>License Date:</label>
               <input type="text" [(ngModel)]="fields.license_date" name="license_date" [readonly]="true" placeholder="License Date" />
             </div>
             <div class="form-row">
-              <label class="label-with-icon">License Status:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- shield/check SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2l7 3v5c0 5-3.58 9.74-7 11-3.42-1.26-7-6-7-11V5l7-3z" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9.5 12.5l1.75 1.75L14.5 11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>License Status:</label>
               <input type="text" [(ngModel)]="fields.license_status" name="license_status" [readonly]="true" placeholder="License Status" />
             </div>
           </div>
 
           <div class="two-cols">
             <div class="form-row">
-              <label class="label-with-icon">Age Group:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- person age SVG (using calendar icon) -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="7" r="3" stroke="currentColor" stroke-width="1.2"/>
+                    <path d="M5 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>Age Group:</label>
               <input type="text" [(ngModel)]="fields.age_group" name="age_group" [readonly]="true" placeholder="Age Group" />
             </div>
             <div class="form-row">
-              <label class="label-with-icon">Driving Record:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- driving record / shield SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2l7 3v5c0 5-3.58 9.74-7 11-3.42-1.26-7-6-7-11V5l7-3z" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>Driving Record:</label>
               <input type="text" [(ngModel)]="fields.driving_record" name="driving_record" [readonly]="true" placeholder="Driving Record" />
             </div>
           </div>
 
           <div class="two-cols">
             <div class="form-row">
-              <label class="label-with-icon">Relationship:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- link / relationship SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 14a5 5 0 0 1 0-7l1-1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M14 10a5 5 0 0 1 0 7l-1 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>Relationship:</label>
               <input type="text" [(ngModel)]="fields.relationship" name="relationship" [readonly]="true" placeholder="Relationship" />
             </div>
             <div class="form-row"><!-- intentionally blank --></div>
@@ -342,33 +384,69 @@
         <div class="card-body">
           <div class="two-cols">
             <div class="form-row">
-              <label class="label-with-icon">Good Driver:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- medal / good driver SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2l2.5 5.5L20 8l-4 3.5L17 18l-5-3-5 3 1-6.5L4 8l5.5-.5L12 2z" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>Good Driver:</label>
               <input type="text" [(ngModel)]="fields.good_driver" name="good_driver" [readonly]="true" placeholder="Good Driver" />
             </div>
             <div class="form-row">
-              <label class="label-with-icon">Multi-Policy:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- stack / multi-policy SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="4" width="18" height="4" rx="1" stroke="currentColor" stroke-width="1.1"/>
+                    <rect x="6" y="10" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.1"/>
+                    <rect x="9" y="16" width="10" height="4" rx="1" stroke="currentColor" stroke-width="1.1"/>
+                  </svg>
+                </span>Multi-Policy:</label>
               <input type="text" [(ngModel)]="fields.multi_policy" name="multi_policy" [readonly]="true" placeholder="Multi-Policy" />
             </div>
           </div>
 
           <div class="two-cols">
             <div class="form-row">
-              <label class="label-with-icon">Vehicle Safety:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- shield / safety SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2l7 3v5c0 5-3.58 9.74-7 11-3.42-1.26-7-6-7-11V5l7-3z" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>Vehicle Safety:</label>
               <input type="text" [(ngModel)]="fields.vehicle_safety" name="vehicle_safety" [readonly]="true" placeholder="Vehicle Safety" />
             </div>
             <div class="form-row">
-              <label class="label-with-icon">Defensive Driving:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- steering wheel / defensive driving SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.2"/>
+                    <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>Defensive Driving:</label>
               <input type="text" [(ngModel)]="fields.defensive_driving" name="defensive_driving" [readonly]="true" placeholder="Defensive Driving" />
             </div>
           </div>
 
           <div class="two-cols">
             <div class="form-row">
-              <label class="label-with-icon">Federal Employee:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- briefcase / federal employee SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="7" width="18" height="11" rx="1" stroke="currentColor" stroke-width="1.1"/>
+                    <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>Federal Employee:</label>
               <input type="text" [(ngModel)]="fields.federal_employee" name="federal_employee" [readonly]="true" placeholder="Federal Employee" />
             </div>
             <div class="form-row">
-              <label class="label-with-icon">Total Savings:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- dollar / savings SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 1v22" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M17 5H9.5a3 3 0 0 0 0 6H15a3 3 0 0 1 0 6H8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>Total Savings:</label>
               <input type="text" [(ngModel)]="fields.total_savings" name="total_savings" [readonly]="true" placeholder="Total Savings" />
             </div>
           </div>
@@ -381,29 +459,59 @@
         <div class="card-body">
           <div class="two-cols">
             <div class="form-row">
-              <label class="label-with-icon">Payment Method:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- payment method / card SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.2"/>
+                    <path d="M2 10h20" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                  </svg>
+                </span>Payment Method:</label>
               <input type="text" [(ngModel)]="fields.payment_method" name="payment_method" [readonly]="true" placeholder="Payment Method" />
             </div>
             <div class="form-row">
-              <label class="label-with-icon">Payment Plan:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- calendar / plan SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.2"/>
+                    <path d="M16 2v4M8 2v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                  </svg>
+                </span>Payment Plan:</label>
               <input type="text" [(ngModel)]="fields.payment_plan" name="payment_plan" [readonly]="true" placeholder="Payment Plan" />
             </div>
           </div>
 
           <div class="two-cols">
             <div class="form-row">
-              <label class="label-with-icon">Monthly Amount:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- dollar sign / amount SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 1v22" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                    <path d="M17 5H9.5a3 3 0 0 0 0 6H15a3 3 0 0 1 0 6H8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                  </svg>
+                </span>Monthly Amount:</label>
               <input type="text" [(ngModel)]="fields.monthly_amount" name="monthly_amount" [readonly]="true" placeholder="Monthly Amount" />
             </div>
             <div class="form-row">
-              <label class="label-with-icon">Next Due Date:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- calendar due date SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.2"/>
+                    <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                  </svg>
+                </span>Next Due Date:</label>
               <input type="text" [(ngModel)]="fields.next_due_date" name="next_due_date" [readonly]="true" placeholder="Next Due Date" />
             </div>
           </div>
 
           <div class="two-cols">
             <div class="form-row">
-              <label class="label-with-icon">Bank Account:</label>
+              <label class="label-with-icon"><span class="icon" aria-hidden="true">
+                  <!-- bank / account SVG -->
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 11l9-6 9 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M21 11v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>Bank Account:</label>
               <input type="text" [(ngModel)]="fields.bank_account" name="bank_account" [readonly]="true" placeholder="Bank Account" />
             </div>
             <div class="form-row"><!-- intentionally blank --></div>
@@ -416,10 +524,11 @@
       <div class="action-row">
         <div class="file-input-wrapper">
           <label class="file-label action-btn" for="fileInput">Choose File</label>
-          <input id="fileInput" type="file" accept="image/*,.pdf" (change)="onFileSelected($event)" style="display:none" />
+          <!-- Accept images, pdfs and plain text files -->
+          <input id="fileInput" type="file" accept="image/*,.pdf,.txt,text/plain" (change)="onFileSelected($event)" style="display:none" />
         </div>
 
-        <button class="action-btn" (click)="onUpload()" [disabled]="!selectedFile">
+        <button class="action-btn" (click)="onUpload()" [disabled]="!selectedFile && !selectedRawFile">
           Upload & Extract
         </button>
 

@@ -312,7 +312,13 @@ class FastInsuranceExtractor:
         cleaned_text = self.filter_important_text(raw_text)
         
         # Adjust text length based on content size to prevent timeouts
-        max_length = min(1000, len(cleaned_text))  # Cap at 1000 chars to prevent timeouts
+        # Allow opt-in faster prompt length when OLLAMA_FAST_MODE is enabled
+        try:
+            fast_mode = os.getenv('OLLAMA_FAST_MODE', '0') == '1'
+        except Exception:
+            fast_mode = False
+        default_cap = 700 if fast_mode else 1000
+        max_length = min(default_cap, len(cleaned_text))  # Cap prompt length
         text_snippet = cleaned_text[:max_length]
         
         # More direct and explicit prompt for better field extraction
@@ -406,11 +412,28 @@ Match patterns exactly as they appear after the labels. Return only JSON."""
         print(f"[INFO] Sending prompt to Ollama (length: {len(prompt)} chars)", file=sys.stderr)
         print(f"[DEBUG] Prompt preview: {prompt[:200]}...", file=sys.stderr)
         
-        payload = {
-            "model": "llama3.2:3b",
-            "prompt": prompt,
-            "stream": False,
-            "options": {
+        # Support an opt-in fast mode that lowers latency by reducing
+        # num_predict/num_ctx and prompt length. This is disabled by default
+        # to preserve maximum accuracy. Enable by setting OLLAMA_FAST_MODE=1
+        try:
+            fast_mode = os.getenv('OLLAMA_FAST_MODE', '0') == '1'
+        except Exception:
+            fast_mode = False
+
+        if fast_mode:
+            options = {
+                "temperature": 0.0,
+                "num_predict": 300,
+                "num_ctx": 2048,
+                "num_gpu": 99,
+                "repeat_penalty": 1.0,
+                "top_p": 0.15,
+                "top_k": 40
+            }
+            timeout_seconds = int(os.getenv('OLLAMA_FAST_TIMEOUT', '45'))
+            print(f"[INFO] Ollama FAST mode enabled: num_predict={options['num_predict']}, num_ctx={options['num_ctx']}, timeout={timeout_seconds}s", file=sys.stderr)
+        else:
+            options = {
                 "temperature": 0.0,   # Zero temperature for deterministic output
                 "num_predict": 600,   # Increased for more complete field extraction
                 "num_ctx": 4096,     # Increased context size to handle larger prompts
@@ -419,11 +442,18 @@ Match patterns exactly as they appear after the labels. Return only JSON."""
                 "top_p": 0.2,        # Slightly increased for better field matching
                 "top_k": 20          # Increased for better vocabulary access
             }
+            timeout_seconds = int(os.getenv('OLLAMA_TIMEOUT', '120'))
+
+        payload = {
+            "model": os.getenv('OLLAMA_MODEL', 'llama3.2:3b'),
+            "prompt": prompt,
+            "stream": False,
+            "options": options
         }
-        
+
         headers = {"Content-Type": "application/json"}
-        # Increase timeout for larger text files and add retry logic
-        resp = requests.post(url, data=json.dumps(payload), headers=headers, timeout=120)
+        # Call Ollama with an adjustable timeout
+        resp = requests.post(url, data=json.dumps(payload), headers=headers, timeout=timeout_seconds)
         resp.raise_for_status()
         
         response_data = resp.json()
