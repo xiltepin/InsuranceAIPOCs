@@ -1,0 +1,163 @@
+<div class="iot-monitor">
+  <header class="monitor-header">
+    <div class="header-content">
+      <h1>🔌 IoTリアルタイムモニタリング</h1>
+      <p class="subtitle">OBD-II Device Tracking - Real-time Vehicle Telemetry</p>
+    </div>
+    <div class="header-actions">
+      <button 
+        *ngIf="!isMonitoring" 
+        (click)="startMonitoring()" 
+        class="btn-start">
+        モニタリング開始
+      </button>
+      <button 
+        *ngIf="isMonitoring" 
+        (click)="stopMonitoring()" 
+        class="btn-stop">
+        モニタリング停止
+      </button>
+      <button 
+        (click)="resetTrip()" 
+        class="btn-reset">
+        トリップリセット
+      </button>
+    </div>
+  </header>
+
+  <div class="monitor-grid">
+    <!-- Primary Metrics -->
+    <section class="card metrics-primary">
+      <div class="metric-card" [style.border-left-color]="getSpeedColor()">
+        <div class="metric-icon">🚗</div>
+        <div class="metric-content">
+          <span class="metric-label">速度</span>
+          <span class="metric-value">{{ currentMetrics?.speed || 0 }}</span>
+          <span class="metric-unit">km/h</span>
+        </div>
+      </div>
+
+      <div class="metric-card" [style.border-left-color]="getRpmColor()">
+        <div class="metric-icon">⚙️</div>
+        <div class="metric-content">
+          <span class="metric-label">エンジン回転数</span>
+          <span class="metric-value">{{ currentMetrics?.rpm || 0 }}</span>
+          <span class="metric-unit">rpm</span>
+        </div>
+      </div>
+
+      <div class="metric-card" [style.border-left-color]="getEngineColor()">
+        <div class="metric-icon">🌡️</div>
+        <div class="metric-content">
+          <span class="metric-label">エンジン温度</span>
+          <span class="metric-value">{{ currentMetrics?.engineTemp || 0 }}</span>
+          <span class="metric-unit">°C</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon">⛽</div>
+        <div class="metric-content">
+          <span class="metric-label">燃料残量</span>
+          <span class="metric-value">{{ currentMetrics?.fuel || 0 }}</span>
+          <span class="metric-unit">%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Safety Score -->
+    <section class="card safety-card">
+      <h2>安全運転スコア</h2>
+      <div class="safety-score-display">
+        <div class="score-ring" [style.border-color]="getSafetyColor()">
+          <span class="score">{{ safetyScore }}</span>
+          <span class="score-label">点</span>
+        </div>
+        <div class="score-details">
+          <div class="score-item">
+            <span class="label">急ブレーキ:</span>
+            <span class="value">{{ currentMetrics?.harshBraking || 0 }}回</span>
+          </div>
+          <div class="score-item">
+            <span class="label">急加速:</span>
+            <span class="value">{{ currentMetrics?.harshAcceleration || 0 }}回</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trip Stats -->
+    <section class="card trip-stats">
+      <h2>トリップ統計</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-icon">📍</div>
+          <div class="stat-content">
+            <span class="stat-label">走行距離</span>
+            <span class="stat-value">{{ tripDistance.toFixed(2) }} km</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon">⏱️</div>
+          <div class="stat-content">
+            <span class="stat-label">走行時間</span>
+            <span class="stat-value">{{ formatDuration(tripDuration) }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Alerts -->
+    <section class="card alerts-panel">
+      <h2>アラート履歴</h2>
+      <div class="alerts-list" *ngIf="alerts.length > 0">
+        <div 
+          *ngFor="let alert of alerts" 
+          class="alert-item"
+          [class.alert-danger]="alert.type === 'danger'"
+          [class.alert-warning]="alert.type === 'warning'">
+          <span class="alert-icon">{{ getAlertIcon(alert.type) }}</span>
+          <div class="alert-content">
+            <span class="alert-message">{{ alert.message }}</span>
+            <span class="alert-time">{{ alert.timestamp | date:'HH:mm:ss' }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="no-alerts" *ngIf="alerts.length === 0">
+        <p>✅ アラートはありません</p>
+      </div>
+    </section>
+
+    <!-- Location Map -->
+    <section class="card location-map">
+      <h2>現在位置</h2>
+      <div class="map-placeholder">
+        <div class="map-icon">🗺️</div>
+          <p class="coordinates" *ngIf="currentMetrics?.location">
+            緯度: {{ currentMetrics.location.lat.toFixed(4) }}<br>
+            経度: {{ currentMetrics.location.lng.toFixed(4) }}
+          </p>
+        <p class="map-note">地図統合は Google Maps API で実装可能</p>
+      </div>
+    </section>
+
+    <!-- Device Status -->
+    <section class="card device-status">
+      <h2>デバイス状態</h2>
+      <div class="status-grid">
+        <div class="status-item">
+          <span class="status-label">デバイスID:</span>
+          <span class="status-value">{{ deviceId }}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">接続状態:</span>
+          <span class="status-value" [class.status-active]="isMonitoring">
+            {{ isMonitoring ? '接続中' : '待機中' }}
+          </span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">データポイント:</span>
+          <span class="status-value">{{ metricsHistory.length }}/20</span>
+        </div>
+      </div>
+    </section>

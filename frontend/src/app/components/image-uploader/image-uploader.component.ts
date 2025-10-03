@@ -685,4 +685,8 @@ export class ImageUploaderComponent implements OnInit {
     }
     return '0.0';
   }
+
+  returnHome() {
+    window.location.href = 'http://localhost:4200/';
+  }
 }
