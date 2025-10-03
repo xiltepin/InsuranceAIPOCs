@@ -345,14 +345,223 @@ export class ImageUploaderComponent implements OnInit {
     if (result.policyholder_details || result.policy_information || result.insured_vehicle) {
       console.log('Using Ollama-enhanced structured data (FAST)');
       this.populateFromStructuredData(result);
-    } else if (result.raw_ocr_text) {
-      console.log('Processing raw text (FAST)');
-      result.full_text = result.raw_ocr_text;
-      this.extractBasicInfoFromRawText(result.raw_ocr_text);
+      // attempt to fill any remaining driver-profile, discounts, billing, and coverage items from raw text if available
+      const rawTextCandidate = result.full_text || (result.text_blocks && Array.isArray(result.text_blocks) ? result.text_blocks.map((b: any) => b.text).join('\n') : null);
+      if (rawTextCandidate) {
+        this.parseDriverProfileFromText(rawTextCandidate);
+        // parse discounts and map into fields if present in raw
+        const parsedDiscounts = this.parseDiscountsFromText(rawTextCandidate);
+        if (parsedDiscounts && Object.keys(parsedDiscounts).length > 0) {
+          (result as any).discounts = parsedDiscounts;
+          this.fields.good_driver = parsedDiscounts['good_driver'] || parsedDiscounts['good driver'] || this.fields.good_driver || '';
+          this.fields.multi_policy = parsedDiscounts['multi_policy'] || parsedDiscounts['multi policy'] || this.fields.multi_policy || '';
+          this.fields.vehicle_safety = parsedDiscounts['vehicle_safety'] || parsedDiscounts['vehicle safety'] || this.fields.vehicle_safety || '';
+          this.fields.defensive_driving = parsedDiscounts['defensive_driving'] || parsedDiscounts['defensive driving'] || this.fields.defensive_driving || '';
+          this.fields.federal_employee = parsedDiscounts['federal_employee'] || parsedDiscounts['federal employee'] || this.fields.federal_employee || '';
+          this.fields.total_savings = parsedDiscounts['total_savings'] || parsedDiscounts['total savings'] || this.fields.total_savings || '';
+        }
+        // parse billing
+        const parsedBilling = this.parseBillingFromText(rawTextCandidate);
+        if (parsedBilling && Object.keys(parsedBilling).length > 0) {
+          (result as any).billing = parsedBilling;
+          this.fields.payment_method = parsedBilling.payment_method || parsedBilling.method || this.fields.payment_method || '';
+          this.fields.payment_plan = parsedBilling.payment_plan || parsedBilling.plan || this.fields.payment_plan || '';
+          this.fields.monthly_amount = parsedBilling.monthly_amount || parsedBilling.monthly || parsedBilling.amount || this.fields.monthly_amount || '';
+          this.fields.next_due_date = parsedBilling.next_due_date || parsedBilling.next_payment_date || this.fields.next_due_date || '';
+          this.fields.bank_account = parsedBilling.bank_account || parsedBilling.bank || parsedBilling.account || this.fields.bank_account || '';
+        }
+        // parse coverage if missing
+        if (!((result as any).coverage_limits)) {
+          const parsedCov = this.parseCoverageTableFromText(rawTextCandidate);
+          if (parsedCov && parsedCov.length > 0) {
+            (result as any).coverage_limits = parsedCov;
+          }
+        }
+      }
+    } else if (result.raw_ocr_text || result.full_text || result.text_blocks) {
+      console.log('Processing raw text (FAST) - falling back to raw parsing');
+      // Normalise full_text if available or build it from text_blocks
+      if (result.raw_ocr_text) {
+        result.full_text = result.raw_ocr_text;
+      } else if (!result.full_text && result.text_blocks && Array.isArray(result.text_blocks)) {
+        result.full_text = result.text_blocks.map((b: any) => b.text).join('\n');
+      }
+      const raw = result.full_text || '';
+      this.extractBasicInfoFromRawText(raw);
+
+      // Parse coverage table, discounts and billing from the same raw text
+      const coverage = this.parseCoverageTableFromText(raw);
+      if (coverage && coverage.length > 0) {
+        (result as any).coverage_limits = coverage;
+        console.log('Parsed coverage entries:', coverage.length);
+      }
+
+      const discounts = this.parseDiscountsFromText(raw);
+      if (discounts && Object.keys(discounts).length > 0) {
+        (result as any).discounts = discounts;
+        console.log('Parsed discounts:', discounts);
+        // map parsed discounts into fields when structured mapping isn't available
+        this.fields.good_driver = discounts['good_driver'] || discounts['good driver'] || this.fields.good_driver || '';
+        this.fields.multi_policy = discounts['multi_policy'] || discounts['multi policy'] || this.fields.multi_policy || '';
+        this.fields.vehicle_safety = discounts['vehicle_safety'] || discounts['vehicle safety'] || this.fields.vehicle_safety || '';
+        this.fields.defensive_driving = discounts['defensive_driving'] || discounts['defensive driving'] || this.fields.defensive_driving || '';
+        this.fields.federal_employee = discounts['federal_employee'] || discounts['federal employee'] || this.fields.federal_employee || '';
+        this.fields.total_savings = discounts['total_savings'] || discounts['total savings'] || this.fields.total_savings || '';
+      }
+
+      const billing = this.parseBillingFromText(raw);
+      if (billing && Object.keys(billing).length > 0) {
+        (result as any).billing = billing;
+        console.log('Parsed billing info:', billing);
+        // map billing fields into UI fields
+        this.fields.payment_method = billing.payment_method || billing.method || this.fields.payment_method || '';
+        this.fields.payment_plan = billing.payment_plan || billing.plan || this.fields.payment_plan || '';
+        this.fields.monthly_amount = billing.monthly_amount || billing.monthly || billing.amount || this.fields.monthly_amount || '';
+        this.fields.next_due_date = billing.next_due_date || billing.next_payment_date || this.fields.next_due_date || '';
+        this.fields.bank_account = billing.bank_account || billing.bank || billing.account || this.fields.bank_account || '';
+      }
+      // parse driver profile from raw text as well
+      this.parseDriverProfileFromText(raw);
     }
     
     // Skip post-processing for faster UI updates (can be optional)
     // this.postProcessExtraction(result.raw_ocr_text); // Commented out for speed
+  }
+
+  /** Parse driver-profile like lines from raw text for missing fields */
+  private parseDriverProfileFromText(rawText: string): void {
+    if (!rawText) return;
+    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+    // label variants map -> field key
+    const labelMap: {patterns: string[]; field: string}[] = [
+      { patterns: ['primary driver', 'primary insured', 'primary driver:'], field: 'primary_driver' },
+      { patterns: ['license #', 'license #:', 'license no', 'license no:', 'license number', 'license number:'], field: 'license_no' },
+      { patterns: ['license date', 'license date:'], field: 'license_date' },
+      { patterns: ['license status', 'license status:'], field: 'license_status' },
+      { patterns: ['age group', 'age group:'], field: 'age_group' },
+      { patterns: ['driving record', 'driving record:'], field: 'driving_record' },
+      { patterns: ['relationship', 'relationship:'], field: 'relationship' }
+    ];
+
+    // helper to try to extract value from a line (either after ':' or next line)
+    const extractValue = (idx: number, line: string): string => {
+      const parts = line.split(':');
+      const after = parts.slice(1).join(':').trim();
+      if (after) return after;
+      if (idx + 1 < lines.length) return lines[idx + 1];
+      return '';
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const lower = line.toLowerCase();
+      for (const entry of labelMap) {
+        for (const pat of entry.patterns) {
+          if (lower.startsWith(pat) || lower === pat || lower.includes(pat)) {
+            const val = extractValue(i, line);
+            (this.fields as any)[entry.field] = val;
+            console.log(`DRIVER-PARSE: set ${entry.field} ->`, val);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Parse a coverage table that appears as groups of 4 lines: type, limit, deductible, premium
+   */
+  private parseCoverageTableFromText(rawText: string): any[] {
+    if (!rawText) return [];
+    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+    // find starting index of coverage section
+    const startIdx = lines.findIndex(l => /coverage limits/i.test(l) || /coverage limits & deductibles/i.test(l) || /coverage limits and deductibles/i.test(l));
+    if (startIdx === -1) return [];
+    // skip header lines until we reach first known coverage type
+    const types = this.getCoverageTypes().map(t => t.toLowerCase());
+    const entries: any[] = [];
+    // scan forward for lines that match coverage types
+    for (let i = startIdx; i < lines.length; i++) {
+      const line = lines[i];
+      // match a type line
+      const matchType = types.find(t => line.toLowerCase().includes(t.split(' ')[0]) || line.toLowerCase().includes(t));
+      if (matchType) {
+        const typeName = this.getCoverageTypes().find(t => t.toLowerCase().includes(matchType)) || line;
+        const limit = (lines[i+1] && !/^[A-Za-z]/.test(lines[i+1])) ? lines[i+1] : lines[i+1] || 'N/A';
+        const deductible = (lines[i+2]) ? lines[i+2] : 'N/A';
+        const premium = (lines[i+3]) ? lines[i+3] : 'N/A';
+        entries.push({ type: typeName, limit, deductible, premium });
+      }
+    }
+    // If no strict matches, as fallback try grouping every 4 lines after header
+    if (entries.length === 0) {
+      const afterHeader = lines.slice(startIdx + 1);
+      for (let j = 0; j + 3 < afterHeader.length; j += 4) {
+        entries.push({ type: afterHeader[j], limit: afterHeader[j+1], deductible: afterHeader[j+2], premium: afterHeader[j+3] });
+      }
+    }
+    return entries;
+  }
+
+  private parseDiscountsFromText(rawText: string): any {
+    if (!rawText) return {};
+    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+    const start = lines.findIndex(l => /discounts applied/i.test(l));
+    if (start === -1) return {};
+    const discounts: any = {};
+    let lastKey: string | null = null;
+    for (let i = start + 1; i < Math.min(lines.length, start + 40); i++) {
+      const line = lines[i];
+      if (/billing information/i.test(line) || /coverage/i.test(line)) break;
+      // If line contains a colon => key (maybe with inline value)
+      if (line.includes(':')) {
+        const [k, ...rest] = line.split(':');
+        const rawKey = k.replace(/[^a-zA-Z0-9 ]/g, '').trim().toLowerCase().replace(/\s+/g,'_');
+        let val = rest.join(':').trim();
+        // if no inline value, check next line if it's a value (e.g., '-$156.80')
+        if (!val && i + 1 < lines.length && (/^[-$\d]/.test(lines[i+1]) || lines[i+1].startsWith('-') )) {
+          val = lines[i+1].trim();
+          i++; // consume the value line
+        }
+        discounts[rawKey] = val || '';
+        lastKey = rawKey;
+      } else {
+        // value-only line (starts with '-' or currency), attach to lastKey
+        if (lastKey && (/^[-$\d]/.test(line) || line.startsWith('-') )) {
+          discounts[lastKey] = discounts[lastKey] ? discounts[lastKey] + ' ' + line : line;
+        }
+      }
+    }
+    console.log('PARSED DISCOUNTS RAW:', discounts);
+    return discounts;
+  }
+
+  private parseBillingFromText(rawText: string): any {
+    if (!rawText) return {};
+    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+    const start = lines.findIndex(l => /billing information/i.test(l));
+    if (start === -1) return {};
+    const billing: any = {};
+    for (let i = start + 1; i < Math.min(lines.length, start + 30); i++) {
+      const line = lines[i];
+      if (!line) continue;
+      if (/payment method/i.test(line)) {
+        billing.payment_method = line.split(':').slice(1).join(':').trim() || lines[i+1] || '';
+      }
+      if (/payment plan/i.test(line)) {
+        billing.payment_plan = line.split(':').slice(1).join(':').trim() || lines[i+1] || '';
+      }
+      if (/monthly amount/i.test(line)) {
+        billing.monthly_amount = line.split(':').slice(1).join(':').trim() || lines[i+1] || '';
+      }
+      if (/next due date/i.test(line)) {
+        billing.next_due_date = line.split(':').slice(1).join(':').trim() || lines[i+1] || '';
+      }
+      if (/bank account/i.test(line)) {
+        billing.bank_account = line.split(':').slice(1).join(':').trim() || lines[i+1] || '';
+      }
+    }
+    return billing;
   }
 
   populateFromStructuredData(result: any): void {
@@ -796,6 +1005,19 @@ export class ImageUploaderComponent implements OnInit {
       return (this.ocrResult.accuracy_metrics.ocr_confidence * 100).toFixed(1);
     }
     return '0.0';
+  }
+
+  /** Timing bar helpers - return CSS width strings */
+  getPaddlePercent(): string {
+    const total = this.totalProcessingTime || (this.paddleOcrTime + this.aiProcessingTime) || 1;
+    const pct = total > 0 ? Math.round((this.paddleOcrTime / total) * 100) : 0;
+    return pct + '%';
+  }
+
+  getAiPercent(): string {
+    const total = this.totalProcessingTime || (this.paddleOcrTime + this.aiProcessingTime) || 1;
+    const pct = total > 0 ? Math.round((this.aiProcessingTime / total) * 100) : 0;
+    return pct + '%';
   }
 
   getExtractionCompleteness(): string {

@@ -4,6 +4,38 @@
       <h1>AUTO INSURANCE DECLARATION PAGE</h1>
     </div>
 
+    <!-- Processing times block (Paddle OCR & Ollama) -->
+    <section class="timing-bar" *ngIf="totalProcessingTime || isProcessing || paddleOcrTime || aiProcessingTime">
+      <div class="timing-header">
+        <h3>Processing Times</h3>
+      </div>
+      <div class="timing-stats">
+        <div class="timing-item">
+          <div class="timing-label">Paddle OCR Process Time</div>
+          <div class="timing-value" [ngClass]="{ 'ai-disabled': aiProcessingTime === 0 }">{{ paddleOcrTime ? (paddleOcrTime + ' s') : (isProcessing ? 'processing...' : '—') }}</div>
+          <div class="timing-bar-visual">
+            <div class="timing-bar-fill paddle-ocr" [style.width]="getPaddlePercent()"></div>
+          </div>
+        </div>
+
+        <div class="timing-item">
+          <div class="timing-label">Ollama Process Time</div>
+          <div class="timing-value ai-enabled">{{ aiProcessingTime ? (aiProcessingTime + ' s') : (isProcessing ? 'processing...' : '—') }}</div>
+          <div class="timing-bar-visual">
+            <div class="timing-bar-fill ai-processing" [style.width]="getAiPercent()"></div>
+          </div>
+        </div>
+
+        <div class="timing-item total" *ngIf="totalProcessingTime">
+          <div class="timing-label">Total</div>
+          <div class="timing-value">{{ totalProcessingTime.toFixed(2) + ' s' }}</div>
+          <div class="timing-bar-visual">
+            <div class="timing-bar-fill" style="background: linear-gradient(90deg, #28a745 0%, #20c997 100%); width: 100%"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <form class="insurance-form mb-3" autocomplete="off">
 
       <!-- Policyholder Details -->
