@@ -58,6 +58,74 @@ export class ImageUploaderComponent implements OnInit {
 
   ngOnInit(): void {}
 
+  /**
+   * Coverage types we display (hard-coded order matching screenshot)
+   */
+  getCoverageTypes(): string[] {
+    return [
+      'Bodily Injury Liability',
+      'Property Damage Liability',
+      'Personal Injury Protection',
+      'Uninsured Motorist (BI)',
+      'Uninsured Motorist (PD)',
+      'Collision',
+      'Comprehensive',
+      'Emergency Roadside Service'
+    ];
+  }
+
+  /**
+   * Try to find a coverage entry object in the OCR JSON that matches the coverage type.
+   * The ocrResult may include coverage arrays under different keys; try common ones.
+   */
+  private findCoverageEntry(type: string): any | null {
+    if (!this.ocrResult) return null;
+    const candidates = (this.ocrResult as any).coverage_limits || (this.ocrResult as any).coverages || (this.ocrResult as any).coverage || (this.ocrResult as any).policy_coverages;
+    if (!candidates || !Array.isArray(candidates)) return null;
+    // Try exact match first, then relaxed contains match
+    const exact = candidates.find((c: any) => c.type && c.type.toLowerCase().trim() === type.toLowerCase().trim());
+    if (exact) return exact;
+    const contains = candidates.find((c: any) => c.type && c.type.toLowerCase().includes(type.split(' ')[0].toLowerCase()));
+    if (contains) return contains;
+    // try matching common short keys
+    const short = candidates.find((c: any) => {
+      const label = (c.type || c.name || c.coverage || '').toString().toLowerCase();
+      return type.toLowerCase().split(/\s|\(|\)/).some(tok => tok && label.includes(tok));
+    });
+    return short || null;
+  }
+
+  /**
+   * Return a string for the requested field (limit/deductible/premium) for a coverage type
+   * If not present, apply fallback rules: Collision -> 'Actual Cash Value' if present, else 'N/A'
+   */
+  getCoverageValue(type: string, field: 'limit' | 'deductible' | 'premium'): string {
+    const entry = this.findCoverageEntry(type);
+    if (!entry) {
+      // Fallback rules: Collision/Comprehensive may be 'Actual Cash Value' if found elsewhere in ocrResult text
+      if ((type === 'Collision' || type === 'Comprehensive') && this.getTextContains('Actual Cash Value')) {
+        if (field === 'limit') return 'Actual Cash Value';
+      }
+      return 'N/A';
+    }
+
+    // prefer normalized keys
+    const val = entry[field] || entry[field + '_amount'] || entry.value || entry.amount || entry.limit || entry.premium;
+    if (val !== undefined && val !== null && val !== '') return val.toString();
+
+    // fallback for collision if textual mention exists
+    if ((type === 'Collision' || type === 'Comprehensive') && field === 'limit' && this.getTextContains('Actual Cash Value')) {
+      return 'Actual Cash Value';
+    }
+
+    return 'N/A';
+  }
+
+  private getTextContains(term: string): boolean {
+    const txt = this.getExtractedText();
+    return typeof txt === 'string' && txt.toLowerCase().includes(term.toLowerCase());
+  }
+
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     console.log('File input changed:', input.files);
@@ -318,6 +386,37 @@ export class ImageUploaderComponent implements OnInit {
       this.fields.garaging_zip = result.insured_vehicle?.garage_zip || '';
       
       console.log('Populated fields from structured data:', this.fields);
+  // --- Driver profile mappings ---
+  const drv = result.driver_profile || result.driver || (result.drivers && result.drivers[0]) || {};
+  this.fields.primary_driver = drv.primary_driver || drv.name || drv.full_name || this.fields.primary_driver || '';
+  this.fields.license_no = drv.license_no || drv.license_number || drv.lic_no || '';
+  this.fields.license_date = drv.license_date || drv.license_issue_date || drv.license_expiry || '';
+  this.fields.license_status = drv.license_status || drv.license_state || '';
+  this.fields.age_group = drv.age_group || drv.age || '';
+  this.fields.driving_record = drv.driving_record || drv.record || '';
+  this.fields.relationship = drv.relationship || drv.relation || '';
+
+  // --- Billing mappings ---
+  const bill = result.billing || result.payment || result.billing_info || {};
+  this.fields.payment_method = bill.payment_method || bill.method || '';
+  this.fields.payment_plan = bill.payment_plan || bill.plan || '';
+  this.fields.monthly_amount = bill.monthly_amount || bill.monthly || bill.amount || '';
+  this.fields.next_due_date = bill.next_due_date || bill.next_payment_date || '';
+  this.fields.bank_account = bill.bank_account || bill.bank || bill.account || '';
+
+  // --- Discounts mappings ---
+  const disc = result.discounts || result.discount_summary || result.discount || {};
+  this.fields.good_driver = disc.good_driver || disc.good_driver_amount || disc['Good Driver'] || '';
+  this.fields.multi_policy = disc.multi_policy || disc.multi_policy_amount || disc['Multi-Policy'] || '';
+  this.fields.vehicle_safety = disc.vehicle_safety || disc.vehicle_safety_amount || '';
+  this.fields.defensive_driving = disc.defensive_driving || disc.defensive_driving_amount || '';
+  this.fields.federal_employee = disc.federal_employee || disc.federal_employee_amount || '';
+  this.fields.total_savings = disc.total_savings || disc.total_savings_amount || disc.total_discount || '';
+
+  // Debug log - show which keys were available in the source
+  console.log('DEBUG - structured keys present:', Object.keys(result));
+  if ((result as any).coverage_limits) console.log('DEBUG - coverage_limits present');
+  if ((result as any).discounts) console.log('DEBUG - discounts present');
   }
 
   extractBasicInfoFromRawText(rawText: string): void {
@@ -630,8 +729,31 @@ export class ImageUploaderComponent implements OnInit {
       license_plate: '',
       body_type: '',
       usage_class: '',
-      annual_mileage: '',
+          annual_mileage: '',
       garaging_zip: ''
+          ,
+          // Driver Profile additions
+          primary_driver: '',
+          license_no: '',
+          license_date: '',
+          license_status: '',
+          age_group: '',
+          driving_record: '',
+          relationship: '',
+          // Billing additions
+          payment_method: '',
+          payment_plan: '',
+          monthly_amount: '',
+          next_due_date: '',
+          bank_account: ''
+          ,
+          // Discounts Applied additions
+          good_driver: '',
+          multi_policy: '',
+          vehicle_safety: '',
+          defensive_driving: '',
+          federal_employee: '',
+          total_savings: ''
     };
     const fileInput = document.getElementById('fileInput') as HTMLInputElement;
     if (fileInput) {

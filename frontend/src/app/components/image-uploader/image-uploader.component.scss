@@ -80,6 +80,44 @@
   color: var(--text-secondary);
 }
 
+/* Blue card modifier that uses the global primary blue tokens */
+.card--blue {
+  border: 1px solid rgba(29,161,242,0.08);
+  overflow: hidden;
+
+  .card-header {
+    background: linear-gradient(90deg, var(--primary-blue), var(--primary-blue-dark));
+    color: #fff;
+    padding: 0.5rem 0.75rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  .card-body {
+    padding: 0.75rem;
+    background: var(--bg-card);
+  }
+}
+
+/* Slightly smaller form inputs and tighter spacing for better density */
+.insurance-form {
+  --form-input-height: 36px; /* override for this component */
+}
+
+.form-row input[type="text"] {
+  height: var(--form-input-height);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+/* Reduce label width a bit on large screens to give inputs more room */
+@media (min-width: 700px) {
+  .form-row label {
+    width: 150px;
+    flex: 0 0 150px;
+  }
+}
+
 /* Ensure confidence/completeness bars are readable on light background */
 .result-black-bg .confidence-bar,
 .result-black-bg .completeness-bar {
