@@ -1,20 +1,20 @@
 <div class="risk-dashboard">
   <header class="dashboard-header">
-    <h1>リスク評価ダッシュボード</h1>
+    <h1>Risk Assessment Dashboard</h1>
     <p class="subtitle">Risk Assessment & Dynamic Pricing Dashboard</p>
   </header>
 
   <div class="dashboard-grid">
     <!-- Driver List -->
     <section class="card driver-list">
-      <h2>ドライバー一覧</h2>
+      <h2>Driver List</h2>
       <div class="drivers">
         <div *ngFor="let driver of driverProfiles" 
              class="driver-card"
              (click)="analyzeDriver(driver.id)">
           <div class="driver-info">
             <h3>{{ driver.name }}</h3>
-            <p>ID: {{ driver.id }} | 年齢: {{ driver.age }}歳</p>
+            <p>ID: {{ driver.id }} | Age: {{ driver.age }} years</p>
           </div>
           <div class="risk-badge" [style.background-color]="getRiskColor(driver.category)">
             <span class="risk-score">{{ driver.riskScore }}</span>
@@ -26,7 +26,7 @@
 
     <!-- Risk Score Card -->
     <section class="card risk-analysis" *ngIf="currentRiskScore">
-      <h2>リスク分析結果</h2>
+      <h2>Risk Analysis Results</h2>
       <div class="score-display">
         <div class="score-circle" [style.border-color]="getRiskColor(currentRiskScore.riskCategory)">
           <span class="score-value">{{ currentRiskScore.riskScore }}</span>
@@ -34,15 +34,15 @@
         </div>
         <div class="score-details">
           <h3>{{ getJapaneseRiskLabel(currentRiskScore.riskCategory) }}</h3>
-          <p>推奨保険料: ¥{{ currentRiskScore.recommendedPremium.toLocaleString() }}</p>
+          <p>Recommended Premium: ¥{{ currentRiskScore.recommendedPremium.toLocaleString() }}</p>
           <p class="discount" *ngIf="currentRiskScore.discount > 0">
-            割引額: ¥{{ currentRiskScore.discount.toLocaleString() }}
+            Discount: ¥{{ currentRiskScore.discount.toLocaleString() }}
           </p>
         </div>
       </div>
 
       <div class="risk-factors">
-        <h3>リスク要因の内訳</h3>
+        <h3>Risk Factor Breakdown</h3>
         <div class="factor" *ngFor="let factor of getFactorArray(currentRiskScore.factors)">
           <span class="factor-label">{{ factor.label }}</span>
           <div class="factor-bar">
@@ -55,46 +55,46 @@
 
     <!-- Scenario Simulator -->
     <section class="card scenario-sim">
-      <h2>シナリオシミュレーター</h2>
+      <h2>Scenario Simulator</h2>
       <div class="simulator-controls">
-        <label for="scenario">シナリオを選択:</label>
+        <label for="scenario">Select Scenario:</label>
         <select id="scenario" [(ngModel)]="selectedScenario" class="scenario-select">
-          <option value="newDriver">新規ドライバー (22歳)</option>
-          <option value="elderly">高齢ドライバー (68歳)</option>
-          <option value="safeDriving">安全運転者 (40歳)</option>
+          <option value="newDriver">New Driver (22 years old)</option>
+          <option value="elderly">Elderly Driver (68 years old)</option>
+          <option value="safeDriving">Safe Driver (40 years old)</option>
         </select>
         <button (click)="simulateScenario()" [disabled]="loading" class="btn-primary">
-          {{ loading ? 'シミュレーション中...' : 'シミュレーション実行' }}
+          {{ loading ? 'Running Simulation...' : 'Run Simulation' }}
         </button>
       </div>
       <div class="simulator-info">
-        <p>🚗 Usage-based insurance (UBI) 対応</p>
-        <p>📊 National Police Agency データ統合</p>
-        <p>🔌 OBD-II デバイス連携</p>
+        <p>🚗 Usage-based insurance (UBI) supported</p>
+        <p>📊 National Police Agency data integration</p>
+        <p>🔌 OBD-II device integration</p>
       </div>
     </section>
 
     <!-- IoT Integration Status -->
     <section class="card iot-status">
-      <h2>IoTデバイス状況</h2>
+      <h2>IoT Device Status</h2>
       <div class="device-list">
         <div class="device-item">
           <span class="device-icon">🔌</span>
           <div class="device-info">
             <h4>OBD-II Tracker #1</h4>
-            <p>Status: <span class="status-active">アクティブ</span></p>
+            <p>Status: <span class="status-active">Active</span></p>
           </div>
         </div>
         <div class="device-item">
           <span class="device-icon">📱</span>
           <div class="device-info">
             <h4>Mobile App Tracker</h4>
-            <p>Status: <span class="status-active">接続中</span></p>
+            <p>Status: <span class="status-active">Connected</span></p>
           </div>
         </div>
       </div>
       <button class="btn-secondary" routerLink="/risk-assessment/iot-monitor">
-        リアルタイムモニタリング
+        Real-time Monitoring
       </button>
     </section>
   </div>

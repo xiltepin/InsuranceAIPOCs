@@ -18,9 +18,9 @@ export class RiskDashboardComponent implements OnInit {
   selectedScenario = 'safeDriving';
 
   driverProfiles = [
-    { id: 'D001', name: '田中太郎', age: 45, riskScore: 35, category: 'low' },
-    { id: 'D002', name: '佐藤花子', age: 68, riskScore: 62, category: 'high' },
-    { id: 'D003', name: '鈴木一郎', age: 23, riskScore: 75, category: 'very-high' },
+    { id: 'D001', name: 'Taro Tanaka', age: 45, riskScore: 35, category: 'low' },
+    { id: 'D002', name: 'Hanako Sato', age: 68, riskScore: 62, category: 'high' },
+    { id: 'D003', name: 'Ichiro Suzuki', age: 23, riskScore: 75, category: 'very-high' },
   ];
 
   constructor(private riskService: RiskAssessmentService) {}
@@ -81,21 +81,21 @@ export class RiskDashboardComponent implements OnInit {
 
   getJapaneseRiskLabel(category: string): string {
     const labels: {[key: string]: string} = {
-      'low': '低リスク',
-      'medium': '中リスク',
-      'high': '高リスク',
-      'very-high': '非常に高リスク'
+      'low': 'Low Risk',
+      'medium': 'Medium Risk',
+      'high': 'High Risk',
+      'very-high': 'Very High Risk'
     };
-    return labels[category] || 'リスク不明';
+    return labels[category] || 'Unknown Risk';
   }
 
   getFactorArray(factors: any) {
     return [
-      { label: '年齢リスク', value: factors.ageRisk },
-      { label: '経験リスク', value: factors.experienceRisk },
-      { label: '運転行動リスク', value: factors.behaviorRisk },
-      { label: '車両リスク', value: factors.vehicleRisk },
-      { label: '地域リスク', value: factors.regionRisk }
+      { label: 'Age Risk', value: factors.ageRisk },
+      { label: 'Experience Risk', value: factors.experienceRisk },
+      { label: 'Driving Behavior Risk', value: factors.behaviorRisk },
+      { label: 'Vehicle Risk', value: factors.vehicleRisk },
+      { label: 'Regional Risk', value: factors.regionRisk }
     ];
   }
 }

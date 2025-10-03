@@ -90,20 +90,20 @@ export class IoTMonitorComponent implements OnInit, OnDestroy {
 
   checkForAlerts(metrics: IoTMetrics) {
     if (metrics.speed > 100) {
-      this.addAlert('warning', `高速走行検知: ${metrics.speed} km/h`);
+      this.addAlert('warning', `High speed detected: ${metrics.speed} km/h`);
     }
 
     if (metrics.engineTemp > 100) {
-      this.addAlert('danger', `エンジン温度高: ${metrics.engineTemp}°C`);
+      this.addAlert('danger', `High engine temperature: ${metrics.engineTemp}°C`);
     }
 
     if (metrics.harshBraking > 3) {
-      this.addAlert('warning', '急ブレーキ検知');
+      this.addAlert('warning', 'Sudden braking detected');
       this.safetyScore = Math.max(0, this.safetyScore - 2);
     }
 
     if (metrics.harshAcceleration > 3) {
-      this.addAlert('warning', '急加速検知');
+      this.addAlert('warning', 'Sudden acceleration detected');
       this.safetyScore = Math.max(0, this.safetyScore - 1);
     }
   }
