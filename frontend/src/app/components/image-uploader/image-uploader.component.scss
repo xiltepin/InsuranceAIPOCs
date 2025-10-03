@@ -94,8 +94,9 @@
   }
 
   .card-body {
-    padding: 0.75rem;
-    background: var(--bg-card);
+      padding: 0.75rem;
+      /* match timing-bar background gradient for consistent blue card appearance */
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   }
 }
 
@@ -461,6 +462,55 @@
   font-weight: 600;
 }
 
+/* Coverage table styling (centered, blue light theme, row borders) */
+.coverage-table-wrapper {
+  max-width: 900px;
+  margin: 0.5rem auto 1rem;
+}
+.coverage-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 0.95rem;
+  text-align: center; /* center all columns' text */
+  background: transparent;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.coverage-table thead th {
+  background: linear-gradient(90deg, rgba(29,161,242,0.08), rgba(29,161,242,0.03));
+  color: #0b66b2;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid rgba(29,161,242,0.12);
+}
+.coverage-table tbody td {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid rgba(29,161,242,0.08);
+  vertical-align: middle;
+  color: #143d6b;
+}
+.coverage-table tbody tr:nth-child(odd) {
+  background: rgba(29,161,242,0.03);
+}
+.coverage-table tbody tr:nth-child(even) {
+  background: rgba(29,161,242,0.01);
+}
+.coverage-table tbody tr:hover {
+  background: rgba(29,161,242,0.06);
+}
+.coverage-table td:first-child {
+  font-weight: 600;
+  color: #0b66b2;
+}
+
+@media (max-width: 700px) {
+  .coverage-table thead th, .coverage-table tbody td {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.9rem;
+  }
+}
+
 .summary {
   font-size: 1.05rem;
   color: #333;
@@ -516,6 +566,26 @@
       color: var(--text-secondary);
       margin: 5px 0 0;
     }
+  }
+
+  /* Page title: white text on blue background (#1da1f2) */
+  .page-title {
+    width: 100%;
+    display: block;
+    max-width: 920px;
+    margin: 0 auto 1rem;
+    background: #1da1f2;
+    color: #ffffff;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04) inset;
+  }
+  .page-title h1 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
   }
 
   .main-content {
