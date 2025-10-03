@@ -639,6 +639,16 @@ export class ImageUploaderComponent implements OnInit {
     }
   }
 
+  onUpload(): void {
+    // Template expects onUpload(); delegate to existing uploadImage()
+    this.uploadImage();
+  }
+
+  clearForm(): void {
+    // Template expects clearForm(); delegate to existing resetForm()
+    this.resetForm();
+  }
+
   getExtractedText(): string {
     if (this.ocrResult?.full_text) {
       return this.ocrResult.full_text;

@@ -38,39 +38,52 @@
   cursor: not-allowed;
 }
 .result-black-bg {
-  background: #181818;
-  color: #fff;
+  /* Light card to match risk-assessment background for OCR results */
+  background: var(--bg-card);
+  color: var(--text-primary);
   border-radius: 12px;
-  padding: 1.5rem 1.5rem 1.5rem 1.5rem;
-  margin: 2rem auto 2rem auto;
-  max-width: 700px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+  padding: 1.5rem;
+  margin: 2rem auto;
+  max-width: 900px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(16,24,40,0.04);
 }
 .result-black-bg h2 {
-  color: #fff;
+  color: var(--primary-blue);
+  margin-top: 0;
 }
 .result-black-bg .confidence-bar-wrapper {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 .result-black-bg .ocr-table {
-  background: #232323;
-  color: #fff;
+  background: transparent;
+  color: var(--text-primary);
   border-radius: 8px;
   width: 100%;
   margin-bottom: 1rem;
 }
 .result-black-bg .ocr-table th,
 .result-black-bg .ocr-table td {
-  border-color: #333;
+  border-color: #e6edf3;
 }
 .result-black-bg .summary {
-  color: #fff;
+  color: var(--text-primary);
 }
 .result-black-bg .full-text {
-  color: #b3e5fc;
+  color: var(--text-primary);
+  background: #f3f6f9;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Fira Mono', 'Consolas', monospace;
 }
 .result-black-bg p {
-  color: #fff;
+  color: var(--text-secondary);
+}
+
+/* Ensure confidence/completeness bars are readable on light background */
+.result-black-bg .confidence-bar,
+.result-black-bg .completeness-bar {
+  color: var(--text-primary);
 }
 .action-row {
   display: flex;
@@ -134,25 +147,129 @@
 }
 
 .insurance-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 1.5rem 2rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  margin-bottom: 2rem;
-  width: 100%;
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  background: var(--bg-card);
+  border-radius: 0; /* full-bleed feel */
+  padding: 1rem;
+  box-shadow: none;
+  margin: 0; /* full width, let container control spacing */
+  width: 100vw;
+  max-width: 100%;
 }
 
 .form-row {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 0.5rem;
   width: 100%;
+  align-items: center;
+}
+
+/* Helper: when two consecutive .form-row elements are paired, wrap them in two columns on wide screens */
+.two-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 700px) {
+  .two-cols {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Compact row (Policy Number) - make label smaller and input compact */
+.form-row--compact label {
+  width: var(--form-label-width-compact);
+  text-align: right;
+  padding-right: 1rem;
+  flex: 0 0 var(--form-label-width-compact);
+}
+.form-row--compact input[type="text"] {
+  max-width: 320px;
+  height: var(--form-input-height);
+}
+
+/* Standard row (Office Phone) - behaves like paired fields */
+.form-row--standard {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+.form-row--standard label {
+  width: var(--form-label-width);
+  text-align: right;
+  padding-right: 1rem;
+  flex: 0 0 var(--form-label-width);
+}
+.form-row--standard input[type="text"] {
+  width: 100%;
+  height: var(--form-input-height);
+}
+
+/* two-cols paired labels - normalize label widths */
+.two-cols .form-row label {
+  width: var(--form-label-width);
+  flex: 0 0 var(--form-label-width);
+  text-align: right;
+  padding-right: 1rem;
+}
+
+/* Input visual helpers */
+.form-row input[type="text"] {
+  height: var(--form-input-height);
+  padding: 0 0.75rem;
+}
+
+::placeholder {
+  color: var(--text-muted);
+}
+
+.input-with-icon {
+  display: flex;
+  align-items: center;
+}
+.input-with-icon .icon {
+  margin-right: 0.5rem;
+  color: var(--text-secondary);
+}
+.input-with-icon input[type="text"] {
+  flex: 1 1 auto;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  height: var(--form-input-height);
+}
+
+/* Ensure compact label aligns vertically with inputs */
+.form-row--compact {
+  align-items: center;
+}
+.form-row--compact label {
+  display: flex;
+  align-items: center;
+}
+
+/* Label with icon on the right */
+.label-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.label-with-icon .icon {
+  display: inline-flex;
+  margin-right: 0.5rem;
+  color: var(--text-secondary);
+}
+
+/* Force all labels in the form to a consistent width so columns align */
+.insurance-form .form-row label {
+  width: var(--form-label-width);
+  flex: 0 0 var(--form-label-width);
+  text-align: right;
+  padding-right: 1rem;
 }
 
 .form-row label {
@@ -181,31 +298,50 @@
   outline: none;
 }
 
-@media (min-width: 600px) {
+@media (min-width: 700px) {
+  .insurance-form {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+  }
+
   .form-row {
-    flex-direction: row;
-    gap: 1.5rem;
+    grid-column: span 1;
+    display: flex;
+    gap: 1rem;
     align-items: center;
   }
+
   .form-row label {
     width: 180px;
     margin-bottom: 0;
     text-align: right;
     padding-right: 1rem;
+    flex: 0 0 180px;
   }
+
   .form-row input[type="text"] {
     width: 100%;
     margin-bottom: 0;
   }
+
+  /* Ensure paired .two-cols wrappers span both columns of the parent grid
+     so each .two-cols yields two side-by-side form rows as expected. */
+  .insurance-form > .two-cols {
+    grid-column: 1 / -1;
+  }
 }
 
-@media (max-width: 599px) {
+@media (max-width: 699px) {
   .insurance-form {
-    padding: 1rem 0.5rem;
+    padding: 1rem;
   }
   .form-row label {
     text-align: left;
     padding-right: 0;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -322,9 +458,9 @@
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  color: #e7e9ea;
+  color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #000;
+  background: var(--bg-primary);
 
   .header {
     text-align: center;
@@ -333,19 +469,19 @@
     .logo {
       font-size: 24px;
       font-weight: 700;
-      color: #1da1f2;
+      color: var(--primary-blue);
       margin: 0;
     }
 
     .subtitle {
       font-size: 14px;
-      color: #71767b;
+      color: var(--text-secondary);
       margin: 5px 0 0;
     }
   }
 
   .main-content {
-  background: #000;
+  background: var(--bg-primary);
   border: none;
   border-radius: 0;
   padding: 0;
@@ -402,7 +538,7 @@
   }
 
   .action-btn {
-    background: #007bff;
+    background: var(--primary-blue);
     color: #fff;
     border: none;
     border-radius: 9999px;
@@ -423,13 +559,13 @@
     cursor: not-allowed;
   }
 
-  .loading-overlay {
+    .loading-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(255,255,255,0.8);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -439,14 +575,14 @@
     .spinner {
       width: 40px;
       height: 40px;
-      border: 4px solid #1da1f2;
+      border: 4px solid var(--primary-blue);
       border-top: 4px solid transparent;
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
 
     p {
-      color: #e7e9ea;
+      color: var(--text-primary);
       margin-top: 10px;
       font-size: 16px;
     }
@@ -467,28 +603,28 @@
     }
   }
 
-  .result-section {
+    .result-section {
     margin-top: 15px;
 
     h2 {
-      color: #1da1f2;
+      color: var(--primary-blue);
       font-size: 18px;
       margin-bottom: 10px;
     }
 
     .extracted-text {
-      background: #15202b;
+      background: var(--bg-card);
       padding: 10px;
       border-radius: 8px;
       white-space: pre-wrap;
       max-height: 200px;
       overflow-y: auto;
-      color: #e7e9ea;
+      color: var(--text-primary);
       font-size: 14px;
     }
 
     p {
-      color: #71767b;
+      color: var(--text-secondary);
       font-size: 14px;
     }
   }
