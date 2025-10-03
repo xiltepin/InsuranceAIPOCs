@@ -16,7 +16,9 @@
             <h3>{{ driver.name }}</h3>
             <p>ID: {{ driver.id }} | Age: {{ driver.age }} years</p>
           </div>
-          <div class="risk-badge" [style.background-color]="getRiskColor(driver.category)">
+          <div class="risk-badge risk-{{driver.category}}" 
+               [style.background-color]="getRiskColor(driver.category)"
+               [style.--risk-bg-color]="getRiskColor(driver.category)">
             <span class="risk-score">{{ driver.riskScore }}</span>
             <span class="risk-label">{{ getJapaneseRiskLabel(driver.category) }}</span>
           </div>

@@ -51,11 +51,18 @@
   border-radius: 8px;
   margin-bottom: 0.75rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
   
   &:hover {
     border-color: #3b82f6;
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+  }
+  
+  &:active,
+  &:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+    outline: none;
   }
   
   h3 {
@@ -77,6 +84,8 @@
   padding: 0.5rem 1rem;
   border-radius: 8px;
   color: white;
+  min-width: 100px;
+  box-sizing: border-box;
   
   .risk-score {
     font-size: 1.5rem;
@@ -87,6 +96,74 @@
     font-size: 0.75rem;
     margin-top: 0.25rem;
   }
+}
+
+/* Risk level specific colors */
+.risk-badge.risk-low {
+  background-color: #10b981 !important;
+  color: white !important;
+}
+
+.risk-badge.risk-medium {
+  background-color: #f59e0b !important;
+  color: white !important;
+}
+
+.risk-badge.risk-high {
+  background-color: #ef4444 !important;
+  color: white !important;
+}
+
+.risk-badge.risk-very-high {
+  background-color: #dc2626 !important;
+  color: white !important;
+}
+
+/* Ensure badges maintain colors in all states */
+.driver-card:hover .risk-badge,
+.driver-card:active .risk-badge,
+.driver-card:focus .risk-badge {
+  color: white !important;
+}
+
+.risk-badge.risk-low:hover,
+.risk-badge.risk-low:active,
+.risk-badge.risk-low:focus,
+.driver-card:hover .risk-badge.risk-low,
+.driver-card:active .risk-badge.risk-low,
+.driver-card:focus .risk-badge.risk-low {
+  background-color: #10b981 !important;
+  color: white !important;
+}
+
+.risk-badge.risk-medium:hover,
+.risk-badge.risk-medium:active,
+.risk-badge.risk-medium:focus,
+.driver-card:hover .risk-badge.risk-medium,
+.driver-card:active .risk-badge.risk-medium,
+.driver-card:focus .risk-badge.risk-medium {
+  background-color: #f59e0b !important;
+  color: white !important;
+}
+
+.risk-badge.risk-high:hover,
+.risk-badge.risk-high:active,
+.risk-badge.risk-high:focus,
+.driver-card:hover .risk-badge.risk-high,
+.driver-card:active .risk-badge.risk-high,
+.driver-card:focus .risk-badge.risk-high {
+  background-color: #ef4444 !important;
+  color: white !important;
+}
+
+.risk-badge.risk-very-high:hover,
+.risk-badge.risk-very-high:active,
+.risk-badge.risk-very-high:focus,
+.driver-card:hover .risk-badge.risk-very-high,
+.driver-card:active .risk-badge.risk-very-high,
+.driver-card:focus .risk-badge.risk-very-high {
+  background-color: #dc2626 !important;
+  color: white !important;
 }
 
 .score-display {
