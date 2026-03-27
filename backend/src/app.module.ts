@@ -9,6 +9,7 @@ import { PricingEngineService } from './pricing-engine.service';
 import { PrismaService } from "./prisma/prisma.service";
 import { CustomerInfoModule } from './customer-info/customer-info.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { RatingModule } from './rating/rating.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { PrismaModule } from './prisma/prisma.module';
     }),
     CustomerInfoModule,
     PrismaModule,
+    RatingModule,
   ],
   controllers: [
     AppController,

@@ -12,6 +12,7 @@ import { Router } from '@angular/router';
         <button class="go-btn" (click)="goToOcr()">OCR Auto</button>
         <button class="go-btn risk-btn" (click)="goToRisk()">Risk Assessment</button>
         <button class="go-btn customers-btn" (click)="goToCustomers()">Customer Info</button>
+        <button class="go-btn rating-btn" (click)="goToRating()">Rating Engine</button>
       </div>
     </div>
   `,
@@ -71,6 +72,12 @@ import { Router } from '@angular/router';
     .customers-btn:hover {
       background: #5a32a3;
     }
+    .rating-btn {
+      background: #1D9E75;
+    }
+    .rating-btn:hover {
+      background: #0F6E56;
+    }
   `]
 })
 export class HomeComponent {
@@ -86,5 +93,9 @@ export class HomeComponent {
 
   goToCustomers() {
     this.router.navigate(['/customers']);
+  }
+
+  goToRating() {
+    this.router.navigate(['/rating']);
   }
 }
