@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 
-const API = 'http://localhost:3000/api/rating';
+const API = 'http://192.168.0.51:3000/api/rating';
 
 interface PredictResponse {
   risk_tier: string;

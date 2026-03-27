@@ -32,7 +32,7 @@ export interface RiskScore {
   providedIn: 'root'
 })
 export class RiskAssessmentService {
-  private apiUrl = 'http://localhost:3000/risk-assessment';
+  private apiUrl = 'http://192.168.0.51:3000/risk-assessment';
   private riskScoreSubject = new BehaviorSubject<RiskScore | null>(null);
   public riskScore$ = this.riskScoreSubject.asObservable();
 
