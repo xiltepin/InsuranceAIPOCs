@@ -35,7 +35,7 @@ export class AppService {
 
   // Use spawn for real-time output streaming
     async processOCR(imagePath: string): Promise<any> {
-      const ocrScriptPath = path.join(__dirname, '../../OCR/paddleocr_to_json.py');
+      const ocrScriptPath = path.join(process.cwd(), 'OCR/paddleocr_to_json.py');
       const absoluteImagePath = path.resolve(imagePath);
       
       console.log('==========================================');
@@ -115,7 +115,7 @@ export class AppService {
     }
 
     async processRawText(rawText: string): Promise<any> {
-      const ocrScriptPath = path.join(__dirname, '../../OCR/paddleocr_to_json.py');
+      const ocrScriptPath = path.join(process.cwd(), 'OCR/paddleocr_to_json.py');
       
       console.log('==========================================');
       console.log('NESTJS: Processing raw text directly with Ollama');
