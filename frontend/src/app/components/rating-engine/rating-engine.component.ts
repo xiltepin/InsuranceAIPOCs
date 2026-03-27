@@ -2,8 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
-const API = 'http://192.168.0.51:3000/api/rating';
+const API = `${environment.apiUrl}/api/rating`;
 
 interface PredictResponse {
   risk_tier: string;

@@ -1,13 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, timeout, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { OcrResponse } from '../models/ocr-response.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class OcrService {
-  private apiUrl = 'http://192.168.0.51:3000/api/upload-image';
+  private apiUrl = `${environment.apiUrl}/api/upload-image`;
 
   constructor(private http: HttpClient) {}
 
@@ -32,7 +33,7 @@ export class OcrService {
   }
 
   processRawText(rawText: string): Observable<any> {
-    const rawApiUrl = 'http://192.168.0.51:3000/api/process-raw-text';
+    const rawApiUrl = `${environment.apiUrl}/api/process-raw-text`;
     const payload = { rawText };console.log('ANGULAR SERVICE: Sending raw text to NestJS for Ollama processing');
     console.log('ANGULAR SERVICE: Raw text length:', rawText.length);
     

@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, of } from 'rxjs';
+import { tap, catchError } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 export interface DriverProfile {
   driverId: string;
@@ -32,7 +34,7 @@ export interface RiskScore {
   providedIn: 'root'
 })
 export class RiskAssessmentService {
-  private apiUrl = 'http://192.168.0.51:3000/risk-assessment';
+  private apiUrl = `${environment.apiUrl}/risk-assessment`;
   private riskScoreSubject = new BehaviorSubject<RiskScore | null>(null);
   public riskScore$ = this.riskScoreSubject.asObservable();
 

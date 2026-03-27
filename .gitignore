@@ -51,3 +51,7 @@ CurrentProject.md
 # Rating engine
 rating-engine/models/*.pkl
 rating-engine/venv/
+
+# Frontend Secrets
+frontend/src/environments/environment.ts
+frontend/src/environments/environment.development.ts
