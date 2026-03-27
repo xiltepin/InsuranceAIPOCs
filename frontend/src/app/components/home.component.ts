@@ -7,10 +7,11 @@ import { Router } from '@angular/router';
   template: `
     <div class="home-container">
       <h1>Welcome to the Insurance Portal</h1>
-      <p class="subtitle">Manage OCR processing and risk assessments.</p>
+      <p class="subtitle">Manage OCR processing, risk assessments, and customer information.</p>
       <div class="button-group">
         <button class="go-btn" (click)="goToOcr()">OCR Auto</button>
         <button class="go-btn risk-btn" (click)="goToRisk()">Risk Assessment</button>
+        <button class="go-btn customers-btn" (click)="goToCustomers()">Customer Info</button>
       </div>
     </div>
   `,
@@ -59,10 +60,16 @@ import { Router } from '@angular/router';
       background: #0d8ddb;
     }
     .risk-btn {
-      background: #1da1f2;
+      background: #28a745;
     }
     .risk-btn:hover {
-      background: #0d8ddb;
+      background: #218838;
+    }
+    .customers-btn {
+      background: #6f42c1;
+    }
+    .customers-btn:hover {
+      background: #5a32a3;
     }
   `]
 })
@@ -75,5 +82,9 @@ export class HomeComponent {
   
   goToRisk() {
     this.router.navigate(['/risk-assessment']);
+  }
+
+  goToCustomers() {
+    this.router.navigate(['/customers']);
   }
 }

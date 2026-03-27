@@ -14,12 +14,12 @@ import { PrismaModule } from './prisma/prisma.module';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      password: 'postgres',
-      username: 'postgres',
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432', 10),
+      password: process.env.DB_PASSWORD || 'postgres',
+      username: process.env.DB_USERNAME || 'postgres',
       entities: [],
-      database: 'postgres',
+      database: process.env.DB_NAME || 'insurance_poc',
       synchronize: true,
       logging: true,
     }),
