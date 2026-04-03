@@ -27,4 +27,7 @@ export class RatingController {
 
   @Get('model/info')
   modelInfo() { return this.ratingService.modelInfo(); }
+
+  @Get('db-status')
+  dbStatus() { return this.ratingService.dbStatus(); }
 }

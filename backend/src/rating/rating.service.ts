@@ -76,4 +76,15 @@ export class RatingService {
       return { status: 'unavailable', model_ready: false, excel_loaded: false };
     }
   }
+
+  async dbStatus() {
+    try {
+      const { data } = await firstValueFrom(
+        this.http.get(`${RATING_ENGINE_URL}/db/status`),
+      );
+      return data;
+    } catch {
+      return { available: false, total_rows: 0, message: 'DB unreachable' };
+    }
+  }
 }
