@@ -12,6 +12,7 @@ from ml.predictor import predict, get_model_info, is_model_ready, is_excel_ready
 from ml.trainer import train_models
 from ml.data_generator import generate_auto_insurance_data
 from ml.excel_reader import load_all_factors
+from ml.db_loader import load_training_data, is_db_available, get_total_row_count
 
 DATA_DIR   = Path(__file__).parent.parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
@@ -47,7 +48,8 @@ class RatingRequest(BaseModel):
 
 
 class TrainRequest(BaseModel):
-    n_samples: int = Field(default=10000, ge=1000, le=100000)
+    n_samples: int = Field(default=10000, ge=1000, le=5000000)
+    source: Literal["synthetic", "database"] = "synthetic"
 
 
 @app.get("/health")
@@ -70,17 +72,43 @@ def rate_policy(req: RatingRequest):
 
 @app.post("/train")
 def train(req: TrainRequest):
-    ef = load_all_factors(EXCEL_DEST) if EXCEL_DEST.exists() else None
-    df = generate_auto_insurance_data(req.n_samples, excel_factors=ef)
-    arts = train_models(df)
+    if req.source == "database":
+        if not is_db_available():
+            raise HTTPException(
+                503,
+                "PostgreSQL database not reachable or table japan_auto_policies "
+                "does not exist. Run the migration and seed first."
+            )
+        df = load_training_data(n_samples=req.n_samples)
+        source_label = "database"
+    else:
+        ef = load_all_factors(EXCEL_DEST) if EXCEL_DEST.exists() else None
+        df = generate_auto_insurance_data(req.n_samples, excel_factors=ef)
+        source_label = "synthetic" + ("_excel_anchored" if ef else "")
+
+    arts = train_models(df, source=source_label)
     reload()
     return {
         "message":                 "Training complete",
-        "training_samples":        req.n_samples,
-        "trained_with_excel":      ef is not None,
+        "training_samples":        len(df),
+        "training_source":         source_label,
         "classification_accuracy": round(arts["metrics"]["classification"]["accuracy"], 4),
         "regression_r2":           round(arts["metrics"]["regression"]["r2"], 4),
         "regression_mae_jpy":      round(arts["metrics"]["regression"]["mae"]),
+    }
+
+
+@app.get("/db/status")
+def db_status():
+    """Check if the historical database is available and how many rows it has."""
+    available = is_db_available()
+    if not available:
+        return {"available": False, "total_rows": 0, "message": "DB not reachable"}
+    total = get_total_row_count()
+    return {
+        "available": True,
+        "total_rows": total,
+        "message": f"{total:,} historical policies available for training",
     }
 
 
