@@ -1,3 +1,4 @@
+import { RatingModule } from './rating/rating.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -9,10 +10,10 @@ import { PricingEngineService } from './pricing-engine.service';
 import { PrismaService } from "./prisma/prisma.service";
 import { CustomerInfoModule } from './customer-info/customer-info.module';
 import { PrismaModule } from './prisma/prisma.module';
-import { RatingModule } from './rating/rating.module';
 
 @Module({
   imports: [
+    RatingModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
@@ -26,7 +27,6 @@ import { RatingModule } from './rating/rating.module';
     }),
     CustomerInfoModule,
     PrismaModule,
-    RatingModule,
   ],
   controllers: [
     AppController,

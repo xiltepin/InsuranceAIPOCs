@@ -5,7 +5,6 @@ import { RiskDashboardComponent } from './components/risk-assessment/risk-dashbo
 import { IoTMonitorComponent } from './components/risk-assessment/iot-monitor/iot-monitor.component';
 import { CustomerComponent } from './components/customer.component';
 import { RatingEngineComponent } from './components/rating-engine/rating-engine.component';
-
 export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'OCRAuto', component: ImageUploaderComponent },
