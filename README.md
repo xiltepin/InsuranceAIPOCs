@@ -1023,60 +1023,55 @@ The NestJS layer exists purely to:
 
 ### ⟳ "Train / Retrain" Button — Complete Flow
 
+> Timings shown are for 8-core / 16 GB LXC. Adjust for your hardware.
+
 ```mermaid
 sequenceDiagram
     participant U as User Browser
     participant NG as Angular (:4200)
     participant NJ as NestJS (:3000)
     participant FA as FastAPI (:8000)
+    participant DB as PostgreSQL DB
     participant DG as data_generator.py
     participant EX as excel_reader.py
     participant TR as trainer.py
-    participant FS as Filesystem
+    participant PKL as rf_artifacts.pkl
 
     U->>NG: Click "Train / Retrain"
-    NG->>NJ: POST /api/rating/train
-    NJ->>FA: POST /train  {n_samples: 10000}
+    NG->>NJ: POST /api/rating/train  {n_samples, source}
+    note over NG,NJ: ~0ms — proxy only, no logic
+    NJ->>FA: POST /train  {n_samples, source}
 
-    FA->>FS: Check data/japan_auto_rating_manual.xlsx
-    alt Excel file exists
-        FA->>EX: load_all_factors(excel_path)
-        EX-->>FA: factors dict (NCD, Age, Prefecture, Vehicle, DR, BasePremiums)
-    else No Excel file
-        FA-->>FA: factors = None (statistical mode)
+    alt source = "database" (historical — recommended)
+        FA->>DB: is_db_available() — ping insurance_poc
+        DB-->>FA: OK / error  [~10ms]
+        FA->>DB: TABLESAMPLE SYSTEM(%) LIMIT n_samples
+        note over DB: 1M rows → ~3–5s via TABLESAMPLE SYSTEM
+        DB-->>FA: DataFrame (n_samples × 13 cols)  [3–5s for 1M rows]
+    else source = "synthetic" (fallback — no DB needed)
+        FA->>EX: load_all_factors() if Excel present
+        EX-->>FA: factor dicts  [~1–2s first load, cached after]
+        FA->>DG: generate_auto_insurance_data(n_samples, excel_factors)
+        note over DG: Generate random policies in-memory<br/>Anchor premiums to Excel if available<br/>Assign risk_tier by percentile cutoffs
+        DG-->>FA: DataFrame  [~2s for 10K rows, ~15s for 100K rows]
     end
 
-    FA->>DG: generate_auto_insurance_data(10000, excel_factors)
-
-    note over DG: Randomly sample 10,000 synthetic policies<br/>(NCD grade, prefecture, age condition,<br/>vehicle class, driver restriction, km band,<br/>driver age, accidents, violations)
-
-    alt Excel factors available (Approach 4)
-        DG->>EX: excel_calculate_premium(reference_profile)
-        EX-->>DG: anchor premium (e.g. ¥148,000)
-        DG-->>DG: Scale all 10,000 premiums around anchor<br/>(0.5x–2.0x × risk score + 3% noise)
-    else No Excel (Approach 1 — statistical)
-        DG-->>DG: Compute premiums from base ¥150,000<br/>+ vehicle class × ¥8,000 scaled by risk score
-    end
-
-    DG-->>DG: Assign risk_tier by percentile:<br/>0–33% = Low, 33–66% = Medium,<br/>66–85% = High, 85%+ = Very High
-
-    DG-->>FA: DataFrame (10,000 rows × 12 columns)
-
-    FA->>TR: train_models(df)
-    TR-->>TR: LabelEncode categorical features
+    FA->>TR: train_models(df, source)
+    TR-->>TR: LabelEncode 5 categorical features
     TR-->>TR: 80/20 train/test split (random_state=42)
-    TR-->>TR: Fit RandomForestClassifier(150 trees, depth 14)<br/>→ predicts risk_tier
-    TR-->>TR: Fit RandomForestRegressor(150 trees, depth 14)<br/>→ predicts annual_premium_jpy
-    TR-->>TR: Evaluate: accuracy, R², MAE on test set
+    TR-->>TR: Fit RandomForestClassifier (150 trees, depth 14, n_jobs=-1)
+    note over TR: 10K rows → ~5s | 100K rows → ~30s | 1M rows → ~4–8 min
+    TR-->>TR: Fit RandomForestRegressor (150 trees, depth 14, n_jobs=-1)
+    TR-->>TR: Evaluate on 20% held-out set → accuracy, R², MAE
+    TR->>PKL: pickle.dump → models/rf_artifacts.pkl
+    note over PKL: ~50–200 MB depending on sample size
+    TR-->>FA: artifacts dict + metrics
 
-    TR->>FS: Save models/rf_artifacts.pkl<br/>(classifier + regressor + encoders + metrics)
-    TR-->>FA: artifacts dict
-
-    FA-->>FA: reload() — invalidate in-memory cache
-    FA-->>NJ: {training_samples, accuracy, R², MAE}
-    NJ-->>NG: 200 OK — same payload
-    NG-->>U: Show green banner with metrics
-    NG-->>NG: checkHealth() — update status badges
+    FA-->>FA: reload() — clear in-memory model cache
+    FA-->>NJ: {training_samples, source, accuracy, R², MAE}  [~5ms]
+    NJ-->>NG: 200 OK — relay payload  [~1ms]
+    NG-->>U: Green banner: accuracy % · R² · MAE ¥
+    NG-->>NG: checkHealth() → status badges update
 ```
 
 ---
@@ -1092,23 +1087,29 @@ sequenceDiagram
     participant EX as excel_reader.py
     participant FS as Filesystem
 
-    U->>NG: Select .xlsx file via file input
-    NG->>NJ: POST /api/rating/upload-excel<br/>(multipart/form-data)
-    NJ->>NJ: FileInterceptor receives file as Buffer
-    NJ->>NJ: Wrap buffer in form-data with correct MIME type
-    NJ->>FA: POST /upload-excel (multipart/form-data)
-    FA->>FS: Save to data/japan_auto_rating_manual.xlsx
+    U->>NG: Select .xlsx file via file input  [0ms]
+    NG->>NJ: POST /api/rating/upload-excel (multipart/form-data)  [~5ms network]
+    NJ->>NJ: FileInterceptor — receives file as Buffer in memory
+    NJ->>NJ: Wrap Buffer in form-data with correct MIME type
+    NJ->>FA: POST /upload-excel (multipart/form-data)  [~2ms local]
+    FA->>FS: Write to rating-engine/data/japan_auto_rating_manual.xlsx  [~10ms]
     FA->>EX: load_all_factors(path)
-    EX-->>EX: Parse 6 sheets → dicts
-    EX-->>FA: factors {ncd, age, prefecture, vehicle, driver_restriction, base_premiums}
-    FA-->>FA: reload() — clear cached excel factors
-    FA-->>NJ: {message, sheets_loaded: {ncd:20, age:5, ...}}
-    NJ-->>NG: 200 OK
-    NG-->>U: Show "✓ Excel rating manual uploaded — sheets: ..."
-    NG-->>NG: checkHealth() → Excel badge turns green
+    EX-->>EX: openpyxl.load_workbook (data_only=True)  [~500ms]
+    EX-->>EX: Parse NCD_Grades (20 rows) → {1: {bi, pd, veh, pax}, ...}
+    EX-->>EX: Parse Age_Factors (5 rows) → {all, 21+, 26+, 30+, 35+}
+    EX-->>EX: Parse Prefecture_Rates (47 rows) → {01…47}
+    EX-->>EX: Parse Vehicle_Class (up to 16 rows)
+    EX-->>EX: Parse Driver_Restriction (4 rows)
+    EX-->>EX: Parse Base_Premiums (5 rows × 6 classes)
+    EX-->>FA: factors dict — all 6 tables loaded  [total ~1–2s]
+    FA-->>FA: reload() — clear cached _excel_factors in predictor.py
+    FA-->>NJ: {message, sheets_loaded: {ncd:20, age:5, prefecture:47, ...}}  [~1ms]
+    NJ-->>NG: 200 OK  [~1ms]
+    NG-->>U: "✓ Excel rating manual uploaded"
+    NG-->>NG: checkHealth() → Excel badge ✓ green
 ```
 
-> **Persistence**: The file is saved to disk. Browser refreshes do **not** require re-upload. Only re-upload if you want a newer version of the manual.
+> **Persistence**: Saved to disk. Browser refresh does **not** require re-upload — server reads from disk on startup.
 
 ---
 
@@ -1152,6 +1153,86 @@ flowchart TD
     style M fill:#EEEDFE,stroke:#8884d8
     style N fill:#FFF8E1,stroke:#f0c040
 ```
+
+---
+
+### 🔗 Component Relationship Map — Numbered Flow
+
+> Shows how every Python module, the database, the pickle model, NestJS, and the browser connect. Numbers = order of execution.
+
+```mermaid
+flowchart TD
+    subgraph BROWSER["🌐 Browser  :4200"]
+        UI["Angular RatingEngineComponent\n─────────────────\nForm: policy inputs\nMode selector: Hybrid / Excel / RF\nButtons: Upload Excel · Train · Calculate"]
+    end
+
+    subgraph NESTJS["🟩 NestJS  :3000  —  Thin Proxy, no logic"]
+        NC["rating.controller.ts\nPOST /api/rating/predict\nPOST /api/rating/train\nPOST /api/rating/upload-excel\nGET  /api/rating/health\nGET  /api/rating/db/status"]
+        NS["rating.service.ts\nForwards JSON / multipart\nto FastAPI :8000"]
+        NC --> NS
+    end
+
+    subgraph FASTAPI["🐍 FastAPI  :8000  —  All business logic"]
+        MA["① main.py\nRequest validation (Pydantic)\nRoute dispatch"]
+
+        subgraph TRAINING["Training path"]
+            DB2["② db_loader.py\nTABLESAMPLE SYSTEM\nLoad n_samples rows\n⏱ 1M rows ≈ 3–5s"]
+            DG["② data_generator.py\n(fallback — no DB)\nGenerate synthetic rows\n⏱ 10K ≈ 2s · 100K ≈ 15s"]
+            TR["③ trainer.py\nLabelEncode categoricals\n80/20 split\nFit RF Classifier + Regressor\n⏱ 10K ≈ 5s · 1M ≈ 4–8 min\nEvaluate accuracy · R² · MAE"]
+            PKL[("④ rf_artifacts.pkl\nmodels/\n─────────────────\classifier\nregressor\nfeature_encoders\ntier_encoder\nfeature_names\nmetrics\nfeature_importance\ntraining_source")]
+        end
+
+        subgraph INFERENCE["Prediction path"]
+            PR["⑤ predictor.py\nLoad rf_artifacts.pkl (cached)\nLoad excel_reader factors (cached)\nApply LabelEncoders\nRF predict tier + premium\nBlend Excel + RF (hybrid)\n⏱ single prediction < 50ms"]
+            EX["⑥ excel_reader.py\nparse .xlsx → factor dicts\nBI / PD / Vehicle / Passenger\n⏱ first load 1–2s, then cached"]
+        end
+    end
+
+    subgraph DATA["💾 Persistent Storage"]
+        XLSX["japan_auto_rating_manual.xlsx\nrating-engine/data/\n6 actuarial sheets"]
+        PGDB[("PostgreSQL\ninsurance_poc DB\njapan_auto_policies\n~80M rows\n⏱ seeded over ~80–90 min")]
+    end
+
+    UI -- "1 HTTP requests" --> NC
+    NS -- "2 proxy" --> MA
+    MA -- "3a source=database" --> DB2
+    MA -- "3b source=synthetic" --> DG
+    DB2 -- "TABLESAMPLE" --> PGDB
+    DG -- "anchor reference" --> EX
+    DB2 -- "DataFrame" --> TR
+    DG -- "DataFrame" --> TR
+    TR -- "pickle.dump" --> PKL
+    TR -- "metrics" --> MA
+    MA -- "predict request" --> PR
+    PR -- "load model" --> PKL
+    PR -- "load factors" --> EX
+    EX -- "read" --> XLSX
+    PR -- "result JSON" --> MA
+    MA -- "200 JSON" --> NS
+    NS -- "relay" --> UI
+
+    style BROWSER fill:#E8F4FD,stroke:#2196F3
+    style NESTJS fill:#E8F5E9,stroke:#4CAF50
+    style FASTAPI fill:#FFF8E1,stroke:#FF9800
+    style DATA fill:#FCE4EC,stroke:#E91E63
+    style PKL fill:#EDE7F6,stroke:#673AB7
+    style PGDB fill:#FCE4EC,stroke:#E91E63
+    style TRAINING fill:#FFFDE7,stroke:#FFC107
+    style INFERENCE fill:#F3E5F5,stroke:#9C27B0
+```
+
+#### ⏱ Timing Summary Table
+
+| Operation | Small (10K) | Medium (100K) | Large (1M) |
+|---|---|---|---|
+| Synthetic data generation | ~2s | ~15s | ~2 min |
+| DB sample load (TABLESAMPLE) | — | ~1s | ~3–5s |
+| RF training (8 cores) | ~5s | ~30s | ~4–8 min |
+| Excel parsing (first load) | 1–2s | same | same |
+| Excel factor lookup + predict | <1ms | same | same |
+| RF inference (single policy) | <50ms | same | same |
+| Hybrid inference (Excel + RF) | <100ms | same | same |
+| DB seeding (80M rows, 7 workers) | — | — | ~80–90 min |
 
 ---
 
