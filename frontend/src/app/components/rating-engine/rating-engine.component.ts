@@ -108,11 +108,11 @@ interface TrainResult {
         <div class="target-row">
           <div class="target-block clf">
             <span class="tgt-name">Classifier → risk_tier</span>
-            <span class="tgt-metric">Accuracy {{ (trainResult?.classification_accuracy * 100).toFixed(1) }}%</span>
+            <span class="tgt-metric">Accuracy {{ ((trainResult?.classification_accuracy ?? 0) * 100).toFixed(1) }}%</span>
           </div>
           <div class="target-block reg">
             <span class="tgt-name">Regressor → annual_premium_jpy</span>
-            <span class="tgt-metric">R² {{ trainResult?.regression_r2.toFixed(3) }} · MAE ¥{{ trainResult?.regression_mae_jpy | number:'1.0-0' }}</span>
+            <span class="tgt-metric">R² {{ (trainResult?.regression_r2 ?? 0).toFixed(3) }} · MAE ¥{{ trainResult?.regression_mae_jpy | number:'1.0-0' }}</span>
           </div>
         </div>
       </div>

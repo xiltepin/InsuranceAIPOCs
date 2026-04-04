@@ -23,10 +23,10 @@ export class RatingService {
     }
   }
 
-  async train(nSamples = 10000) {
+  async train(nSamples = 10000, source = 'synthetic') {
     try {
       const { data } = await firstValueFrom(
-        this.http.post(`${RATING_ENGINE_URL}/train`, { n_samples: nSamples }),
+        this.http.post(`${RATING_ENGINE_URL}/train`, { n_samples: nSamples, source }),
       );
       return data;
     } catch {

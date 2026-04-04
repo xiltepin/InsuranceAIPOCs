@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { RatingService } from './rating.service';
 
@@ -15,8 +15,8 @@ export class RatingController {
   }
 
   @Post('train')
-  train(@Query('samples') samples?: string) {
-    return this.ratingService.train(samples ? parseInt(samples, 10) : 10000);
+  train(@Body() body: { n_samples?: number; source?: string }) {
+    return this.ratingService.train(body.n_samples ?? 10000, body.source ?? 'synthetic');
   }
 
   @Post('upload-excel')
