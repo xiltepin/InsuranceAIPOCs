@@ -379,7 +379,7 @@ interface TrainResult {
     .section-lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--color-text-secondary); margin:14px 0 8px; }
     .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     label { display:flex; flex-direction:column; font-size:12px; color:var(--color-text-secondary); gap:4px; }
-    input, select { border:1px solid var(--color-border-secondary); border-radius:6px; padding:7px 10px; font-size:13px; background:var(--color-background-secondary); outline:none; color:var(--color-text-primary); }
+    input, select { border:2px solid #2E75B6; border-radius:6px; padding:7px 10px; font-size:13px; background:#EAF3FF; outline:none; color:#1a1a1a; font-weight:500; } select { cursor:pointer; } input:focus, select:focus { border-color:#1D9E75; background:#E1F5EE; }
     input:focus, select:focus { border-color:#1D9E75; }
     .btn-primary { margin-top:18px; width:100%; padding:12px; background:#1F4E79; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
     .btn-primary:hover:not(:disabled) { background:#0C447C; }
