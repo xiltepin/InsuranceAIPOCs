@@ -53,6 +53,7 @@ def _get_conn():
         user=os.getenv("DB_USER", "postgres"),
         password=os.getenv("DB_PASSWORD", "postgres"),
         connect_timeout=10,
+        client_encoding="UTF8",
     )
 
 

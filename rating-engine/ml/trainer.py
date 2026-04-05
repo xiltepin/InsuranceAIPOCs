@@ -1,18 +1,7 @@
-"""
-trainer.py
-==========
-Trains Random Forest classifier (risk tier) + regressor (annual premium ¥).
-
-Sources:
-  - "database"  → pull n_samples rows from PostgreSQL via db_loader.py
-  - "synthetic" → generate rows in-memory via data_generator.py (fallback)
-
-The trained artifacts are saved to models/rf_artifacts.pkl.
-"""
-
 import pickle
 import logging
 from pathlib import Path
+from typing import Generator
 
 import numpy as np
 import pandas as pd
@@ -23,12 +12,14 @@ from sklearn.preprocessing import LabelEncoder
 
 log = logging.getLogger(__name__)
 
-MODEL_DIR   = Path(__file__).parent.parent / "models"
-CATEGORICAL = ["age_condition", "prefecture_code", "vehicle_rating_class",
-               "driver_restriction", "annual_km_band"]
-NUMERICAL   = ["ncd_grade", "annual_km", "driver_age", "num_accidents",
-               "num_violations", "years_licensed"]
+MODEL_DIR    = Path(__file__).parent.parent / "models"
+CATEGORICAL  = ["age_condition","prefecture_code","vehicle_rating_class",
+                "driver_restriction","annual_km_band"]
+NUMERICAL    = ["ncd_grade","annual_km","driver_age","num_accidents",
+                "num_violations","years_licensed"]
 ALL_FEATURES = NUMERICAL + CATEGORICAL
+N_TREES      = 150
+CHUNK        = 10
 
 
 def encode(df, encoders=None, fit=True):
@@ -46,15 +37,26 @@ def encode(df, encoders=None, fit=True):
 
 
 def train_models(df: pd.DataFrame, source: str = "synthetic") -> dict:
-    """
-    Train RF classifier + regressor on df.
+    """Blocking train — used by non-streaming /train endpoint."""
+    artifacts = None
+    for item in train_models_streaming(df, source):
+        if item.get("done"):
+            artifacts = item["artifacts"]
+    return artifacts
 
-    Parameters
-    ----------
-    df     : DataFrame with all ALL_FEATURES columns + risk_tier + annual_premium_jpy
-    source : "database" or "synthetic" — recorded in the artifact metadata
+
+def train_models_streaming(df: pd.DataFrame, source: str = "synthetic") -> Generator:
+    """
+    Generator that yields real progress dicts as trees are built.
+    Uses warm_start so each chunk of 10 trees is a real training step.
+
+    Yields: {"phase": str, "pct": int}
+    Final:  {"phase": "Complete", "pct": 100, "done": True,
+             "result": {...metrics...}, "artifacts": {...}}
     """
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
+
+    yield {"phase": "Encoding features...", "pct": 8}
 
     X, encoders = encode(df, fit=True)
     tier_enc = LabelEncoder()
@@ -65,31 +67,54 @@ def train_models(df: pd.DataFrame, source: str = "synthetic") -> dict:
         X, y_cls, y_reg, test_size=0.2, random_state=42
     )
 
-    log.info("Training classifier on %s rows (%s source)…", f"{len(X_tr):,}", source)
+    # ── Classifier ──────────────────────────────────────────────────────
+    yield {"phase": f"Classifier: 0/{N_TREES} trees", "pct": 9}
+
     clf = RandomForestClassifier(
-        n_estimators=150, max_depth=14,
+        n_estimators=CHUNK, warm_start=True, max_depth=14,
         min_samples_split=5, min_samples_leaf=2,
-        random_state=42, n_jobs=-1,
+        random_state=42, n_jobs=None,
     )
     clf.fit(X_tr, yc_tr)
+    yield {"phase": f"Classifier: {CHUNK}/{N_TREES} trees", "pct": 11}
 
-    log.info("Training regressor…")
-    reg = RandomForestRegressor(
-        n_estimators=150, max_depth=14,
-        min_samples_split=5, min_samples_leaf=2,
-        random_state=42, n_jobs=-1,
-    )
-    reg.fit(X_tr, yr_tr)
+    for n in range(CHUNK * 2, N_TREES + 1, CHUNK):
+        clf.n_estimators = n
+        clf.fit(X_tr, yc_tr)
+        pct = 11 + int(((n - CHUNK) / (N_TREES - CHUNK)) * 38)
+        yield {"phase": f"Classifier: {n}/{N_TREES} trees", "pct": pct}
 
-    yc_pred = clf.predict(X_te)
+    yield {"phase": "Evaluating classifier...", "pct": 50}
+    yc_pred    = clf.predict(X_te)
     clf_report = classification_report(
         yc_te, yc_pred, target_names=tier_enc.classes_, output_dict=True
     )
-    yr_pred = reg.predict(X_te)
+
+    # ── Regressor ───────────────────────────────────────────────────────
+    yield {"phase": f"Regressor: 0/{N_TREES} trees", "pct": 51}
+
+    reg = RandomForestRegressor(
+        n_estimators=CHUNK, warm_start=True, max_depth=14,
+        min_samples_split=5, min_samples_leaf=2,
+        random_state=42, n_jobs=None,
+    )
+    reg.fit(X_tr, yr_tr)
+    yield {"phase": f"Regressor: {CHUNK}/{N_TREES} trees", "pct": 53}
+
+    for n in range(CHUNK * 2, N_TREES + 1, CHUNK):
+        reg.n_estimators = n
+        reg.fit(X_tr, yr_tr)
+        pct = 53 + int(((n - CHUNK) / (N_TREES - CHUNK)) * 37)
+        yield {"phase": f"Regressor: {n}/{N_TREES} trees", "pct": pct}
+
+    yield {"phase": "Evaluating regressor...", "pct": 91}
+    yr_pred     = reg.predict(X_te)
     reg_metrics = {
         "mae": float(mean_absolute_error(yr_te, yr_pred)),
         "r2":  float(r2_score(yr_te, yr_pred)),
     }
+
+    yield {"phase": "Saving rf_artifacts.pkl...", "pct": 95}
 
     artifacts = {
         "classifier":         clf,
@@ -103,16 +128,24 @@ def train_models(df: pd.DataFrame, source: str = "synthetic") -> dict:
             "regression":     dict(zip(ALL_FEATURES, reg.feature_importances_.tolist())),
         },
         "training_samples":   len(df),
-        "trained_with_excel": False,    # Excel still used for inference in hybrid mode
-        "training_source":    source,   # "database" | "synthetic"
+        "trained_with_excel": False,
+        "training_source":    source,
     }
 
-    out_path = MODEL_DIR / "rf_artifacts.pkl"
-    with open(out_path, "wb") as f:
+    with open(MODEL_DIR / "rf_artifacts.pkl", "wb") as f:
         pickle.dump(artifacts, f)
 
+    result = {
+        "message":                 "Training complete",
+        "training_samples":        len(df),
+        "training_source":         source,
+        "classification_accuracy": round(clf_report["accuracy"], 4),
+        "regression_r2":           round(reg_metrics["r2"], 4),
+        "regression_mae_jpy":      round(reg_metrics["mae"]),
+    }
+
     print(f"✅  Training complete ({len(df):,} samples — source: {source})")
-    print(f"    Classification accuracy : {clf_report['accuracy']:.3f}")
-    print(f"    Regression R²           : {reg_metrics['r2']:.3f}")
-    print(f"    Regression MAE          : ¥{reg_metrics['mae']:,.0f}")
-    return artifacts
+    print(f"    Accuracy {clf_report['accuracy']:.3f}  R² {reg_metrics['r2']:.3f}  MAE ¥{reg_metrics['mae']:,.0f}")
+
+    yield {"phase": "Complete", "pct": 100, "done": True,
+           "result": result, "artifacts": artifacts}

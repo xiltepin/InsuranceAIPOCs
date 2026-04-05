@@ -153,6 +153,10 @@ interface TrainResult {
       <button class="btn-train" (click)="trainModel()" [disabled]="training">
         {{ training ? 'Training...' : '⟳ Train / Retrain' }}
       </button>
+      <div class="train-progress-wrap" *ngIf="training">
+        <div class="train-progress-bar" [style.width.%]="trainProgress"></div>
+        <span class="train-progress-label">{{ trainPhaseLabel }}</span>
+      </div>
     </div>
 
     <div *ngIf="uploadMsg" class="info-banner" [class.err-banner]="uploadErr">{{ uploadMsg }}</div>
@@ -329,33 +333,36 @@ interface TrainResult {
     .btn-upload:hover { background:#B5D4F4; }
     .btn-train { padding:6px 14px; background:#1F4E79; color:#fff; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
     .btn-train:hover:not(:disabled) { background:#0C447C; }
-    .btn-train:disabled { opacity:.5; }
+    .btn-train:disabled { opacity:.9; }
+    .train-progress-wrap { margin-top:8px; background:#D6E4F7; border-radius:6px; height:22px; position:relative; overflow:hidden; width:100%; }
+    .train-progress-bar { height:100%; background:linear-gradient(90deg,#1F4E79,#2E75B6,#1D9E75); border-radius:6px; transition:width 1.2s ease; }
+    .train-progress-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; letter-spacing:.04em; text-shadow:0 1px 2px rgba(0,0,0,.4); }
     .info-banner { font-size:13px; background:#E1F5EE; border-left:3px solid #1D9E75; padding:8px 12px; border-radius:4px; margin-top:6px; color:#085041; }
     .info-banner.err-banner { background:#FCEBEB; border-color:#E24B4A; color:#501313; }
 
     /* dialog */
-    .dialog-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px; }
-    .dialog-box { background:var(--color-background-primary); border-radius:16px; padding:28px; max-width:640px; width:100%; max-height:90vh; overflow-y:auto; }
+    .dialog-backdrop { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.65); z-index:9999; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
+    .dialog-box { background:#ffffff; border-radius:16px; padding:32px; max-width:620px; width:100%; box-shadow:0 24px 80px rgba(0,0,0,0.5); position:relative; z-index:10000; margin:auto; }
     .dialog-header { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
-    .dialog-icon { width:36px; height:36px; background:#E1F5EE; color:#085041; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; flex-shrink:0; }
-    .dialog-header h2 { font-size:17px; font-weight:700; margin:0; }
-    .dialog-section { margin-bottom:18px; }
-    .dl-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--color-text-secondary); margin-bottom:6px; }
-    .dl-val { font-size:20px; font-weight:700; }
-    .source-pill { display:inline-block; background:#EEEDFE; color:#3C3489; padding:4px 14px; border-radius:12px; font-size:14px; font-weight:600; }
-    .dl-table-name { font-size:15px; font-weight:700; font-family:monospace; background:var(--color-background-secondary); padding:6px 12px; border-radius:6px; display:inline-block; margin-bottom:4px; }
-    .dl-sub { font-size:12px; color:var(--color-text-secondary); margin-top:4px; }
-    .dl-code { font-size:13px; font-family:monospace; background:var(--color-background-secondary); padding:6px 12px; border-radius:6px; display:inline-block; }
+    .dialog-icon { width:36px; height:36px; background:#1D9E75; color:#ffffff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; flex-shrink:0; }
+    .dialog-header h2 { font-size:17px; font-weight:700; margin:0; color:#1F4E79; }
+    .dialog-section { margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid #eee; } .dialog-section:last-of-type { border-bottom:none; margin-bottom:8px; }
+    .dl-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#888; margin-bottom:6px; }
+    .dl-val { font-size:20px; font-weight:700; color:#1F4E79; }
+    .source-pill { display:inline-block; background:#1F4E79; color:#ffffff; padding:4px 14px; border-radius:12px; font-size:14px; font-weight:600; letter-spacing:.03em; }
+    .dl-table-name { font-size:15px; font-weight:700; font-family:monospace; background:#1F4E79; color:#ffffff; padding:6px 14px; border-radius:6px; display:inline-block; margin-bottom:4px; }
+    .dl-sub { font-size:12px; color:#666; margin-top:4px; }
+    .dl-code { font-size:13px; font-family:monospace; background:#2C2C2A; color:#9FE1CB; padding:6px 14px; border-radius:6px; display:inline-block; }
     .feature-grid { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
-    .feature-pill { background:var(--color-background-secondary); border:1px solid var(--color-border-tertiary); border-radius:8px; padding:5px 10px; font-size:12px; }
-    .feat-col { font-weight:700; font-family:monospace; margin-right:4px; }
-    .feat-desc { color:var(--color-text-secondary); }
+    .feature-pill { background:#F0F4FF; border:1px solid #B5D4F4; border-radius:8px; padding:5px 10px; font-size:12px; }
+    .feat-col { font-weight:700; font-family:monospace; margin-right:4px; color:#0C447C; }
+    .feat-desc { color:#555; }
     .target-row { display:flex; gap:10px; flex-wrap:wrap; }
     .target-block { flex:1; border-radius:8px; padding:10px 14px; min-width:180px; }
-    .target-block.clf { background:#EEEDFE; border:1px solid #AFA9EC; }
-    .target-block.reg { background:#EAF3DE; border:1px solid #97C459; }
-    .tgt-name { display:block; font-size:13px; font-weight:600; margin-bottom:4px; }
-    .tgt-metric { display:block; font-size:12px; color:var(--color-text-secondary); }
+    .target-block.clf { background:#F0EEFF; border:2px solid #7F77DD; }
+    .target-block.reg { background:#EAF5D8; border:2px solid #639922; }
+    .tgt-name { display:block; font-size:13px; font-weight:700; margin-bottom:4px; color:#1a1a1a; }
+    .tgt-metric { display:block; font-size:12px; color:#555; }
     .btn-close-dialog { margin-top:8px; width:100%; padding:11px; background:#1F4E79; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
     .btn-close-dialog:hover { background:#0C447C; }
 
@@ -513,6 +520,9 @@ export class RatingEngineComponent implements OnInit {
   dbStatus:    DbStatus     = { available: false, total_rows: 0, message: '' };
   trainResult: TrainResult  | null = null;
   showTrainDialog = false;
+  trainProgress = 0;
+  trainPhaseLabel = '';
+  private _progressTimer: any = null;
 
   loading   = false;
   training  = false;
@@ -581,21 +591,58 @@ export class RatingEngineComponent implements OnInit {
 
   trainModel() {
     this.training = true;
-    const source = this.dbStatus.available ? 'database' : 'synthetic';
+    this.trainProgress = 0;
+    this.trainPhaseLabel = 'Connecting...';
+
+    if (this._progressTimer) {
+      clearInterval(this._progressTimer);
+      this._progressTimer = null;
+    }
+
+    const source    = this.dbStatus.available ? 'database' : 'synthetic';
     const n_samples = this.dbStatus.available ? 1000000 : 10000;
-    this.http.post<TrainResult>(`${API}/train`, { n_samples, source }).subscribe({
-      next: r => this.zone.run(() => {
-        this.trainResult = r;
-        this.training    = false;
-        this.showTrainDialog = true;
-        this.checkHealth();
+    const url       = `${API}/train/stream?n_samples=${n_samples}&source=${source}`;
+
+    const es = new EventSource(url);
+
+    es.onmessage = (event: MessageEvent) => {
+      this.zone.run(() => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.error) {
+            es.close();
+            this.training        = false;
+            this.trainProgress   = 0;
+            this.trainPhaseLabel = 'Error: ' + data.error;
+            this.cdr.detectChanges();
+            return;
+          }
+
+          this.trainProgress   = data.pct   ?? this.trainProgress;
+          this.trainPhaseLabel = data.phase  ?? this.trainPhaseLabel;
+
+          if (data.done) {
+            es.close();
+            this.trainResult     = data.result;
+            this.training        = false;
+            this.showTrainDialog = true;
+            this.checkHealth();
+          }
+          this.cdr.detectChanges();
+        } catch (_) {}
+      });
+    };
+
+    es.onerror = () => {
+      this.zone.run(() => {
+        es.close();
+        this.training        = false;
+        this.trainProgress   = 0;
+        this.trainPhaseLabel = '';
         this.cdr.detectChanges();
-      }),
-      error: () => this.zone.run(() => {
-        this.training = false;
-        this.cdr.detectChanges();
-      }),
-    });
+      });
+    };
   }
 
   closeDialog() {
