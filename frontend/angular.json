@@ -63,6 +63,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "allowedHosts": ["poc.xiltepin.me", "all"]
+          },
           "configurations": {
             "production": {
               "buildTarget": "frontend-temp:build:production"

@@ -975,3 +975,356 @@ Contact: [Your Enterprise Support Contact]
 ---
 
 > ⚠️ **Important**: This application processes insurance documents containing sensitive personal information. Always ensure compliance with data protection regulations (GDPR, CCPA, HIPAA) and implement proper security measures for production deployments.
+
+---
+
+---
+
+## 🤖 Japan Auto Insurance Rating Engine — `/rating`
+
+> Route: `http://<host>:4200/rating`  
+> Source: `rating-engine/` (Python/FastAPI) · `backend/src/rating/` (NestJS proxy) · `frontend/src/app/components/rating-engine/`
+
+This module implements a **hybrid actuarial + machine-learning** premium calculator for Japan auto insurance, replacing a traditional Drools rules engine.
+
+---
+
+### 🏗️ System Layers
+
+```
+Browser (Angular :4200)
+    └─► NestJS backend (:3000)  ← thin HTTP proxy, no business logic
+            └─► FastAPI Python engine (:8000)  ← all ML + actuarial logic
+```
+
+The NestJS layer exists purely to:
+- Apply CORS headers for the browser
+- Forward multipart file uploads (Excel) as `form-data` to FastAPI
+- Relay JSON request/response unchanged
+
+---
+
+### 📂 Key Files
+
+| File | Role |
+|---|---|
+| `rating-engine/api/main.py` | FastAPI app, endpoints, Pydantic request validation |
+| `rating-engine/ml/excel_reader.py` | Parses Excel → Python factor dictionaries |
+| `rating-engine/ml/predictor.py` | All 3 prediction modes at inference time |
+| `rating-engine/ml/trainer.py` | RF training pipeline, saves `rf_artifacts.pkl` |
+| `rating-engine/ml/data_generator.py` | Generates synthetic training data |
+| `rating-engine/data/japan_auto_rating_manual.xlsx` | Actuarial rating manual (6 active sheets) |
+| `rating-engine/models/rf_artifacts.pkl` | Saved trained model (created after first Train) |
+| `backend/src/rating/rating.service.ts` | NestJS proxy service |
+| `backend/src/rating/rating.controller.ts` | NestJS routes (`/api/rating/*`) |
+| `frontend/.../rating-engine.component.ts` | Angular UI — all form, display, and HTTP logic |
+
+---
+
+### ⟳ "Train / Retrain" Button — Complete Flow
+
+> Timings shown are for 8-core / 16 GB LXC. Adjust for your hardware.
+
+```mermaid
+sequenceDiagram
+    participant U as User Browser
+    participant NG as Angular (:4200)
+    participant NJ as NestJS (:3000)
+    participant FA as FastAPI (:8000)
+    participant DB as PostgreSQL DB
+    participant DG as data_generator.py
+    participant EX as excel_reader.py
+    participant TR as trainer.py
+    participant PKL as rf_artifacts.pkl
+
+    U->>NG: Click "Train / Retrain"
+    NG->>NJ: POST /api/rating/train  {n_samples, source}
+    note over NG,NJ: ~0ms — proxy only, no logic
+    NJ->>FA: POST /train  {n_samples, source}
+
+    alt source = "database" (historical — recommended)
+        FA->>DB: is_db_available() — ping insurance_poc
+        DB-->>FA: OK / error  [~10ms]
+        FA->>DB: TABLESAMPLE SYSTEM(%) LIMIT n_samples
+        note over DB: 1M rows → ~3–5s via TABLESAMPLE SYSTEM
+        DB-->>FA: DataFrame (n_samples × 13 cols)  [3–5s for 1M rows]
+    else source = "synthetic" (fallback — no DB needed)
+        FA->>EX: load_all_factors() if Excel present
+        EX-->>FA: factor dicts  [~1–2s first load, cached after]
+        FA->>DG: generate_auto_insurance_data(n_samples, excel_factors)
+        note over DG: Generate random policies in-memory<br/>Anchor premiums to Excel if available<br/>Assign risk_tier by percentile cutoffs
+        DG-->>FA: DataFrame  [~2s for 10K rows, ~15s for 100K rows]
+    end
+
+    FA->>TR: train_models(df, source)
+    TR-->>TR: LabelEncode 5 categorical features
+    TR-->>TR: 80/20 train/test split (random_state=42)
+    TR-->>TR: Fit RandomForestClassifier (150 trees, depth 14, n_jobs=-1)
+    note over TR: 10K rows → ~5s | 100K rows → ~30s | 1M rows → ~4–8 min
+    TR-->>TR: Fit RandomForestRegressor (150 trees, depth 14, n_jobs=-1)
+    TR-->>TR: Evaluate on 20% held-out set → accuracy, R², MAE
+    TR->>PKL: pickle.dump → models/rf_artifacts.pkl
+    note over PKL: ~50–200 MB depending on sample size
+    TR-->>FA: artifacts dict + metrics
+
+    FA-->>FA: reload() — clear in-memory model cache
+    FA-->>NJ: {training_samples, source, accuracy, R², MAE}  [~5ms]
+    NJ-->>NG: 200 OK — relay payload  [~1ms]
+    NG-->>U: Green banner: accuracy % · R² · MAE ¥
+    NG-->>NG: checkHealth() → status badges update
+```
+
+---
+
+### 📤 Excel Upload — Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User Browser
+    participant NG as Angular (:4200)
+    participant NJ as NestJS (:3000)
+    participant FA as FastAPI (:8000)
+    participant EX as excel_reader.py
+    participant FS as Filesystem
+
+    U->>NG: Select .xlsx file via file input  [0ms]
+    NG->>NJ: POST /api/rating/upload-excel (multipart/form-data)  [~5ms network]
+    NJ->>NJ: FileInterceptor — receives file as Buffer in memory
+    NJ->>NJ: Wrap Buffer in form-data with correct MIME type
+    NJ->>FA: POST /upload-excel (multipart/form-data)  [~2ms local]
+    FA->>FS: Write to rating-engine/data/japan_auto_rating_manual.xlsx  [~10ms]
+    FA->>EX: load_all_factors(path)
+    EX-->>EX: openpyxl.load_workbook (data_only=True)  [~500ms]
+    EX-->>EX: Parse NCD_Grades (20 rows) → {1: {bi, pd, veh, pax}, ...}
+    EX-->>EX: Parse Age_Factors (5 rows) → {all, 21+, 26+, 30+, 35+}
+    EX-->>EX: Parse Prefecture_Rates (47 rows) → {01…47}
+    EX-->>EX: Parse Vehicle_Class (up to 16 rows)
+    EX-->>EX: Parse Driver_Restriction (4 rows)
+    EX-->>EX: Parse Base_Premiums (5 rows × 6 classes)
+    EX-->>FA: factors dict — all 6 tables loaded  [total ~1–2s]
+    FA-->>FA: reload() — clear cached _excel_factors in predictor.py
+    FA-->>NJ: {message, sheets_loaded: {ncd:20, age:5, prefecture:47, ...}}  [~1ms]
+    NJ-->>NG: 200 OK  [~1ms]
+    NG-->>U: "✓ Excel rating manual uploaded"
+    NG-->>NG: checkHealth() → Excel badge ✓ green
+```
+
+> **Persistence**: Saved to disk. Browser refresh does **not** require re-upload — server reads from disk on startup.
+
+---
+
+### 💰 Premium Calculation — 3 Modes
+
+```mermaid
+flowchart TD
+    A([User clicks 'Calculate Premium']) --> B{Selected mode?}
+
+    B -->|Excel only| C[excel_reader.py\nexcel_calculate_premium]
+    B -->|RF only| D[predictor.py\nLoad rf_artifacts.pkl]
+    B -->|Hybrid — default| E[Run BOTH paths]
+
+    C --> C1["Base Premium lookup\n(vehicle class → nearest class 1/3/5/7/9/11)"]
+    C1 --> C2["× NCD factor\n(grade 1=2.32× … grade 20=0.38×)"]
+    C2 --> C3["× Age condition factor\n(all=1.27× … 35+=0.85×)"]
+    C3 --> C4["× Prefecture factor\n(Tokyo=1.15× … Tottori=0.78×)"]
+    C4 --> C5["× Driver restriction factor\n(none=1.0× … self=0.88×)"]
+    C5 --> C6["Sum 4 coverage lines:\nBI + PD + Vehicle + Passenger = Total ¥"]
+
+    D --> D1["Encode categorical features\n(LabelEncoder per column)"]
+    D1 --> D2["RandomForestClassifier.predict()\n→ risk_tier + probabilities"]
+    D2 --> D3["RandomForestRegressor.predict()\n→ rf_premium ¥"]
+
+    E --> C
+    E --> D
+    C --> H["excel_premium ¥"]
+    D3 --> I["rf_premium ¥"]
+    H --> J["rf_confidence = max(tier_proba)\nrf_weight = min(0.40, 0.30 + (confidence−0.5)×0.20)\nexc_weight = 1.0 − rf_weight"]
+    I --> J
+    J --> K["blended = excel × exc_weight\n         + rf × rf_weight"]
+
+    C6 --> L([Return JSON result])
+    D3 --> M([Return JSON result])
+    K --> N([Return JSON result])
+
+    style C fill:#EAF3DE,stroke:#8cb87a
+    style D fill:#EEEDFE,stroke:#8884d8
+    style E fill:#FFF8E1,stroke:#f0c040
+    style L fill:#EAF3DE,stroke:#8cb87a
+    style M fill:#EEEDFE,stroke:#8884d8
+    style N fill:#FFF8E1,stroke:#f0c040
+```
+
+---
+
+### 🔗 Component Relationship Map — Numbered Flow
+
+> Shows how every Python module, the database, the pickle model, NestJS, and the browser connect. Numbers = order of execution.
+
+```mermaid
+flowchart TD
+    subgraph BROWSER["🌐 Browser  :4200"]
+        UI["Angular RatingEngineComponent\n─────────────────\nForm: policy inputs\nMode selector: Hybrid / Excel / RF\nButtons: Upload Excel · Train · Calculate"]
+    end
+
+    subgraph NESTJS["🟩 NestJS  :3000  —  Thin Proxy, no logic"]
+        NC["rating.controller.ts\nPOST /api/rating/predict\nPOST /api/rating/train\nPOST /api/rating/upload-excel\nGET  /api/rating/health\nGET  /api/rating/db/status"]
+        NS["rating.service.ts\nForwards JSON / multipart\nto FastAPI :8000"]
+        NC --> NS
+    end
+
+    subgraph FASTAPI["🐍 FastAPI  :8000  —  All business logic"]
+        MA["① main.py\nRequest validation (Pydantic)\nRoute dispatch"]
+
+        subgraph TRAINING["Training path"]
+            DB2["② db_loader.py\nTABLESAMPLE SYSTEM\nLoad n_samples rows\n⏱ 1M rows ≈ 3–5s"]
+            DG["② data_generator.py\n(fallback — no DB)\nGenerate synthetic rows\n⏱ 10K ≈ 2s · 100K ≈ 15s"]
+            TR["③ trainer.py\nLabelEncode categoricals\n80/20 split\nFit RF Classifier + Regressor\n⏱ 10K ≈ 5s · 1M ≈ 4–8 min\nEvaluate accuracy · R² · MAE"]
+            PKL[("④ rf_artifacts.pkl\nmodels/\n─────────────────\classifier\nregressor\nfeature_encoders\ntier_encoder\nfeature_names\nmetrics\nfeature_importance\ntraining_source")]
+        end
+
+        subgraph INFERENCE["Prediction path"]
+            PR["⑤ predictor.py\nLoad rf_artifacts.pkl (cached)\nLoad excel_reader factors (cached)\nApply LabelEncoders\nRF predict tier + premium\nBlend Excel + RF (hybrid)\n⏱ single prediction < 50ms"]
+            EX["⑥ excel_reader.py\nparse .xlsx → factor dicts\nBI / PD / Vehicle / Passenger\n⏱ first load 1–2s, then cached"]
+        end
+    end
+
+    subgraph DATA["💾 Persistent Storage"]
+        XLSX["japan_auto_rating_manual.xlsx\nrating-engine/data/\n6 actuarial sheets"]
+        PGDB[("PostgreSQL\ninsurance_poc DB\njapan_auto_policies\n~80M rows\n⏱ seeded over ~80–90 min")]
+    end
+
+    UI -- "1 HTTP requests" --> NC
+    NS -- "2 proxy" --> MA
+    MA -- "3a source=database" --> DB2
+    MA -- "3b source=synthetic" --> DG
+    DB2 -- "TABLESAMPLE" --> PGDB
+    DG -- "anchor reference" --> EX
+    DB2 -- "DataFrame" --> TR
+    DG -- "DataFrame" --> TR
+    TR -- "pickle.dump" --> PKL
+    TR -- "metrics" --> MA
+    MA -- "predict request" --> PR
+    PR -- "load model" --> PKL
+    PR -- "load factors" --> EX
+    EX -- "read" --> XLSX
+    PR -- "result JSON" --> MA
+    MA -- "200 JSON" --> NS
+    NS -- "relay" --> UI
+
+    style BROWSER fill:#E8F4FD,stroke:#2196F3
+    style NESTJS fill:#E8F5E9,stroke:#4CAF50
+    style FASTAPI fill:#FFF8E1,stroke:#FF9800
+    style DATA fill:#FCE4EC,stroke:#E91E63
+    style PKL fill:#EDE7F6,stroke:#673AB7
+    style PGDB fill:#FCE4EC,stroke:#E91E63
+    style TRAINING fill:#FFFDE7,stroke:#FFC107
+    style INFERENCE fill:#F3E5F5,stroke:#9C27B0
+```
+
+#### ⏱ Timing Summary Table
+
+| Operation | Small (10K) | Medium (100K) | Large (1M) |
+|---|---|---|---|
+| Synthetic data generation | ~2s | ~15s | ~2 min |
+| DB sample load (TABLESAMPLE) | — | ~1s | ~3–5s |
+| RF training (8 cores) | ~5s | ~30s | ~4–8 min |
+| Excel parsing (first load) | 1–2s | same | same |
+| Excel factor lookup + predict | <1ms | same | same |
+| RF inference (single policy) | <50ms | same | same |
+| Hybrid inference (Excel + RF) | <100ms | same | same |
+| DB seeding (80M rows, 7 workers) | — | — | ~80–90 min |
+
+---
+
+### 📊 Excel Actuarial Sheets — What Each Sheet Does
+
+The file `japan_auto_rating_manual.xlsx` has 6 sheets used by the code (2 are documentation only):
+
+| Sheet | Rows read | What it provides |
+|---|---|---|
+| `NCD_Grades` | 1–20 | Per-grade multipliers for BI, PD, Vehicle, Passenger coverage |
+| `Age_Factors` | 5 conditions | Multipliers by age condition (all / 21+ / 26+ / 30+ / 35+) |
+| `Prefecture_Rates` | 47 prefectures | Regional BI/PD and vehicle multipliers by prefecture code |
+| `Vehicle_Class` | Classes 1–15 | BI/PD and vehicle multipliers by displacement/type category |
+| `Driver_Restriction` | 4 types | Multipliers for none/family/spouse/self restriction |
+| `Base_Premiums` | 5 coverage × 6 classes | Starting ¥ amounts before any factor is applied |
+| `Sample_Calc` | *(not parsed)* | Documentation — worked example for human review |
+| `Cover` | *(not parsed)* | Documentation — title/intro sheet |
+
+---
+
+### 🔢 The Actuarial Formula (Excel Only Mode)
+
+For each coverage line, the formula is:
+
+```
+line_premium = BASE_RATE[vehicle_class][coverage]
+             × NCD_factor[ncd_grade][coverage]
+             × AGE_factor[age_condition][coverage]
+             × PREFECTURE_factor[prefecture_code][coverage]
+             × DRIVER_RESTRICTION_factor[driver_restriction][coverage]
+
+annual_premium = BI_premium + PD_premium + Vehicle_premium + Passenger_premium
+```
+
+This is the same multiplicative chain that actuaries encode in Drools rule tables, but here it is implemented directly in Python reading from Excel.
+
+---
+
+### 🌳 How the Random Forest Was Trained — Feature Table
+
+The RF is trained on **11 features** (6 numerical, 5 categorical):
+
+| Feature | Type | Example values |
+|---|---|---|
+| `ncd_grade` | Numerical | 1–20 |
+| `annual_km` | Numerical | 3,000 / 7,500 / 12,500 / 17,500 / 25,000 |
+| `driver_age` | Numerical | 18–75 |
+| `num_accidents` | Numerical | 0–4 |
+| `num_violations` | Numerical | 0–3 |
+| `years_licensed` | Numerical | 0–57 |
+| `age_condition` | Categorical | all / 21+ / 26+ / 30+ / 35+ |
+| `prefecture_code` | Categorical | 01–47 |
+| `vehicle_rating_class` | Categorical | 1 / 3 / 5 / 7 / 9 / 11 / 13 / 15 |
+| `driver_restriction` | Categorical | none / family / spouse / self |
+| `annual_km_band` | Categorical | 〜5,000 / 5,001〜10,000 / … |
+
+**Two models are trained simultaneously:**
+- `RandomForestClassifier` → outputs `risk_tier` (Low / Medium / High / Very High) + class probabilities
+- `RandomForestRegressor` → outputs `annual_premium_jpy` (¥)
+
+**Risk tier assignment during training** uses data-driven percentile cutoffs:
+- 0–33rd percentile of generated premiums → **Low**
+- 33–66th percentile → **Medium**
+- 66–85th percentile → **High**
+- 85th–100th percentile → **Very High**
+
+**Premium MAE** (shown in the UI after training) = average ¥ error of the regressor on the 20% held-out test set.
+
+---
+
+### 🔄 Starting / Restarting the Rating Engine
+
+```bash
+# Terminal 1: Python FastAPI rating engine
+cd InsuranceAIPOCs/rating-engine
+venv/bin/python api/main.py
+# Runs on http://0.0.0.0:8000
+
+# Terminal 2: NestJS backend (proxy)
+cd InsuranceAIPOCs/backend
+npm run start:dev
+# Runs on http://0.0.0.0:3000
+
+# Terminal 3: Angular frontend
+cd InsuranceAIPOCs/frontend
+npm run start -- --host 0.0.0.0
+# Runs on http://0.0.0.0:4200
+
+# First-time Python setup (run once)
+cd rating-engine
+python -m venv venv
+venv/bin/pip install -r requirements.txt
+```
+
+> After starting, navigate to `http://<host>:4200/rating`, upload the Excel manual, then click **Train / Retrain** once. After that the system is ready to calculate premiums.

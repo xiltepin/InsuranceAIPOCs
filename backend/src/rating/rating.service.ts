@@ -1,6 +1,8 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { Response } from 'express';
+import * as http from 'http';
 import FormData = require('form-data');
 
 const RATING_ENGINE_URL = process.env.RATING_ENGINE_URL || 'http://localhost:8000';
@@ -16,22 +18,40 @@ export class RatingService {
       );
       return data;
     } catch (err) {
-      const status = err.response?.status || HttpStatus.SERVICE_UNAVAILABLE;
       throw new HttpException(
-        err.response?.data?.detail || 'Rating engine unavailable', status,
+        err.response?.data?.detail || 'Rating engine unavailable',
+        err.response?.status || HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
   }
 
-  async train(nSamples = 10000) {
+  async train(nSamples = 10000, source = 'synthetic') {
     try {
       const { data } = await firstValueFrom(
-        this.http.post(`${RATING_ENGINE_URL}/train`, { n_samples: nSamples }),
+        this.http.post(`${RATING_ENGINE_URL}/train`, { n_samples: nSamples, source }),
       );
       return data;
     } catch {
       throw new HttpException('Training failed', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  streamTrain(nSamples: number, source: string, res: Response) {
+    const url = `${RATING_ENGINE_URL}/train/stream?n_samples=${nSamples}&source=${source}`;
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    http.get(url, (upstream) => {
+      upstream.pipe(res);
+      res.on('close', () => upstream.destroy());
+    }).on('error', (err) => {
+      res.write(`data: {"error":"${err.message}","pct":0}\n\n`);
+      res.end();
+    });
   }
 
   async uploadExcel(fileBuffer: Buffer, originalName: string) {
@@ -57,9 +77,7 @@ export class RatingService {
 
   async modelInfo() {
     try {
-      const { data } = await firstValueFrom(
-        this.http.get(`${RATING_ENGINE_URL}/model/info`),
-      );
+      const { data } = await firstValueFrom(this.http.get(`${RATING_ENGINE_URL}/model/info`));
       return data;
     } catch {
       throw new HttpException('Model info unavailable', HttpStatus.SERVICE_UNAVAILABLE);
@@ -68,12 +86,19 @@ export class RatingService {
 
   async health() {
     try {
-      const { data } = await firstValueFrom(
-        this.http.get(`${RATING_ENGINE_URL}/health`),
-      );
+      const { data } = await firstValueFrom(this.http.get(`${RATING_ENGINE_URL}/health`));
       return data;
     } catch {
       return { status: 'unavailable', model_ready: false, excel_loaded: false };
+    }
+  }
+
+  async dbStatus() {
+    try {
+      const { data } = await firstValueFrom(this.http.get(`${RATING_ENGINE_URL}/db/status`));
+      return data;
+    } catch {
+      return { available: false, total_rows: 0, message: 'DB unreachable' };
     }
   }
 }

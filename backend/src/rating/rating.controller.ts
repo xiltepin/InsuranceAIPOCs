@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { RatingService } from './rating.service';
 
 @Controller('api/rating')
@@ -15,8 +16,21 @@ export class RatingController {
   }
 
   @Post('train')
-  train(@Query('samples') samples?: string) {
-    return this.ratingService.train(samples ? parseInt(samples, 10) : 10000);
+  train(@Body() body: { n_samples?: number; source?: string }) {
+    return this.ratingService.train(body.n_samples ?? 10000, body.source ?? 'synthetic');
+  }
+
+  @Get('train/stream')
+  trainStream(
+    @Query('n_samples') nSamples: string,
+    @Query('source') source: string,
+    @Res() res: Response,
+  ) {
+    return this.ratingService.streamTrain(
+      parseInt(nSamples) || 10000,
+      source || 'synthetic',
+      res,
+    );
   }
 
   @Post('upload-excel')
@@ -27,4 +41,7 @@ export class RatingController {
 
   @Get('model/info')
   modelInfo() { return this.ratingService.modelInfo(); }
+
+  @Get('db-status')
+  dbStatus() { return this.ratingService.dbStatus(); }
 }
