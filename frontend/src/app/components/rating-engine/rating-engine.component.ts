@@ -150,6 +150,13 @@ interface TrainResult {
         {{ uploading ? 'Uploading...' : '↑ Upload rating manual' }}
       </label>
 
+      <select class="sample-select" [(ngModel)]="selectedSamples" [disabled]="training || !dbStatus.available">
+        <option [ngValue]="1000">1,000 rows</option>
+        <option [ngValue]="10000">10,000 rows</option>
+        <option [ngValue]="100000">100,000 rows</option>
+        <option [ngValue]="1000000">1,000,000 rows</option>
+      </select>
+
       <button class="btn-train" (click)="trainModel()" [disabled]="training">
         {{ training ? 'Training...' : '⟳ Train / Retrain' }}
       </button>
@@ -331,6 +338,7 @@ interface TrainResult {
     .badge.err { background:#FCEBEB; color:#501313; }
     .btn-upload { padding:6px 14px; background:#E6F1FB; border:1px solid #85B7EB; border-radius:6px; font-size:13px; cursor:pointer; color:#0C447C; font-weight:500; }
     .btn-upload:hover { background:#B5D4F4; }
+    .sample-select { padding:4px 10px; background:#f5faff; border:1px solid #85B7EB; border-radius:6px; font-size:13px; color:#0C447C; font-weight:500; cursor:pointer; outline:none; height:29px; }
     .btn-train { padding:6px 14px; background:#1F4E79; color:#fff; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
     .btn-train:hover:not(:disabled) { background:#0C447C; }
     .btn-train:disabled { opacity:.9; }
@@ -530,6 +538,7 @@ export class RatingEngineComponent implements OnInit {
   errorMsg  = '';
   uploadMsg = '';
   uploadErr = false;
+  selectedSamples = 1000000;
 
   get canPredict(): boolean {
     if (this.form.mode === 'excel_only') return this.health.excel_loaded;
@@ -600,7 +609,7 @@ export class RatingEngineComponent implements OnInit {
     }
 
     const source    = this.dbStatus.available ? 'database' : 'synthetic';
-    const n_samples = this.dbStatus.available ? 1000000 : 10000;
+    const n_samples = this.dbStatus.available ? this.selectedSamples : 10000;
     const url       = `${API}/train/stream?n_samples=${n_samples}&source=${source}`;
 
     const es = new EventSource(url);
