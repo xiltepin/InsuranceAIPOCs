@@ -285,7 +285,7 @@ interface TrainResult {
             <span class="bd-val">¥{{ item.val | number:'1.0-0' }}</span>
           </div>
         </div>
-        <div class="prob-section">
+        <div class="prob-section" *ngIf="result.mode !== 'excel_only'">
           <div class="prob-lbl">Risk probability — RF classifier</div>
           <div *ngFor="let tier of tierOrder" class="prob-row">
             <span class="prob-name">{{ tier }}</span>
@@ -609,6 +609,7 @@ export class RatingEngineComponent implements OnInit {
       this.zone.run(() => {
         try {
           const data = JSON.parse(event.data);
+          console.log('[Training Progress]', data);
 
           if (data.error) {
             es.close();
