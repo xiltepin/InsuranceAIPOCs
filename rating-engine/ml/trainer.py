@@ -19,7 +19,7 @@ NUMERICAL    = ["ncd_grade","annual_km","driver_age","num_accidents",
                 "num_violations","years_licensed"]
 ALL_FEATURES = NUMERICAL + CATEGORICAL
 N_TREES      = 150
-CHUNK        = 10
+CHUNK        = 2
 
 
 def encode(df, encoders=None, fit=True):
@@ -57,6 +57,7 @@ def train_models_streaming(df: pd.DataFrame, source: str = "synthetic") -> Gener
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
     yield {"phase": "Encoding features...", "pct": 8}
+    log.info("Encoding features...")
 
     X, encoders = encode(df, fit=True)
     tier_enc = LabelEncoder()
@@ -69,6 +70,7 @@ def train_models_streaming(df: pd.DataFrame, source: str = "synthetic") -> Gener
 
     # ── Classifier ──────────────────────────────────────────────────────
     yield {"phase": f"Classifier: 0/{N_TREES} trees", "pct": 9}
+    log.info(f"Training Classifier: 0/{N_TREES} trees")
 
     clf = RandomForestClassifier(
         n_estimators=CHUNK, warm_start=True, max_depth=14,
@@ -77,14 +79,17 @@ def train_models_streaming(df: pd.DataFrame, source: str = "synthetic") -> Gener
     )
     clf.fit(X_tr, yc_tr)
     yield {"phase": f"Classifier: {CHUNK}/{N_TREES} trees", "pct": 11}
+    log.info(f"Training Classifier: {CHUNK}/{N_TREES} trees")
 
     for n in range(CHUNK * 2, N_TREES + 1, CHUNK):
         clf.n_estimators = n
         clf.fit(X_tr, yc_tr)
         pct = 11 + int(((n - CHUNK) / (N_TREES - CHUNK)) * 38)
         yield {"phase": f"Classifier: {n}/{N_TREES} trees", "pct": pct}
+        log.info(f"Training Classifier: {n}/{N_TREES} trees")
 
     yield {"phase": "Evaluating classifier...", "pct": 50}
+    log.info("Evaluating classifier...")
     yc_pred    = clf.predict(X_te)
     clf_report = classification_report(
         yc_te, yc_pred, target_names=tier_enc.classes_, output_dict=True
@@ -92,6 +97,7 @@ def train_models_streaming(df: pd.DataFrame, source: str = "synthetic") -> Gener
 
     # ── Regressor ───────────────────────────────────────────────────────
     yield {"phase": f"Regressor: 0/{N_TREES} trees", "pct": 51}
+    log.info(f"Training Regressor: 0/{N_TREES} trees")
 
     reg = RandomForestRegressor(
         n_estimators=CHUNK, warm_start=True, max_depth=14,
@@ -100,14 +106,17 @@ def train_models_streaming(df: pd.DataFrame, source: str = "synthetic") -> Gener
     )
     reg.fit(X_tr, yr_tr)
     yield {"phase": f"Regressor: {CHUNK}/{N_TREES} trees", "pct": 53}
+    log.info(f"Training Regressor: {CHUNK}/{N_TREES} trees")
 
     for n in range(CHUNK * 2, N_TREES + 1, CHUNK):
         reg.n_estimators = n
         reg.fit(X_tr, yr_tr)
         pct = 53 + int(((n - CHUNK) / (N_TREES - CHUNK)) * 37)
         yield {"phase": f"Regressor: {n}/{N_TREES} trees", "pct": pct}
+        log.info(f"Training Regressor: {n}/{N_TREES} trees")
 
     yield {"phase": "Evaluating regressor...", "pct": 91}
+    log.info("Evaluating regressor...")
     yr_pred     = reg.predict(X_te)
     reg_metrics = {
         "mae": float(mean_absolute_error(yr_te, yr_pred)),
