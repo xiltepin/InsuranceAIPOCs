@@ -41,12 +41,12 @@ def is_model_ready():  return MODEL_PATH.exists()
 def is_excel_ready():  return EXCEL_PATH.exists()
 
 
-def _excel_risk_tier(inputs: dict, excel_result: dict):
+def _excel_risk_tier(inputs: dict, excel_result: dict) -> str:
     """
     Multi-factor risk scoring for Excel mode.
     The Excel workbook has no accident/violation tables, so we compute
     a risk score from all available driver & policy attributes.
-    Returns (tier_label, probability_dict).
+    Returns the deterministic tier label (no probabilities — Excel is not probabilistic).
     """
     score = 0.0  # 0 = safest, 100 = most dangerous
 
@@ -83,18 +83,7 @@ def _excel_risk_tier(inputs: dict, excel_result: dict):
     elif score >= 10:  tier = "Medium"
     else:              tier = "Low"
 
-    # --- Synthetic probabilities for the UI probability bars ---
-    import math
-    raw = {
-        "Low":       max(0, 50 - score) / 50,
-        "Medium":    math.exp(-0.5 * ((score - 15) / 12) ** 2),
-        "High":      math.exp(-0.5 * ((score - 35) / 12) ** 2),
-        "Very High": min(1, max(0, score - 30) / 40),
-    }
-    total = sum(raw.values()) or 1
-    probs = {k: round(v / total, 4) for k, v in raw.items()}
-
-    return tier, probs
+    return tier
 
 
 def predict(inputs: dict, mode: str = "hybrid") -> dict:
@@ -105,12 +94,12 @@ def predict(inputs: dict, mode: str = "hybrid") -> dict:
         excel_result = excel_calculate_premium(inputs, ef)
 
     if mode == "excel_only":
-        tier, probs = _excel_risk_tier(inputs, excel_result)
+        tier = _excel_risk_tier(inputs, excel_result)
         return {
             **excel_result,
             "mode":               "excel_only",
             "risk_tier":          tier,
-            "risk_probabilities": probs,
+            "risk_probabilities": {},
             "excel_breakdown": {
                 "bi_premium":        excel_result["bi_premium"],
                 "pd_premium":        excel_result["pd_premium"],

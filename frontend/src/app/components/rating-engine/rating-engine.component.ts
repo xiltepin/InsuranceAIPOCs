@@ -292,7 +292,7 @@ interface TrainResult {
             <span class="bd-val">¥{{ item.val | number:'1.0-0' }}</span>
           </div>
         </div>
-        <div class="prob-section">
+        <div class="prob-section" *ngIf="result.mode !== 'excel_only'">
           <div class="prob-lbl">Risk probability — RF classifier</div>
           <div *ngFor="let tier of tierOrder" class="prob-row">
             <span class="prob-name">{{ tier }}</span>
@@ -301,6 +301,13 @@ interface TrainResult {
                    [style.width.%]="(result.risk_probabilities[tier] || 0) * 100"></div>
             </div>
             <span class="prob-pct">{{ ((result.risk_probabilities[tier] || 0) * 100).toFixed(1) }}%</span>
+          </div>
+        </div>
+        <div class="prob-section" *ngIf="result.mode === 'excel_only'">
+          <div class="prob-lbl">Risk assessment — Actuarial</div>
+          <div class="actuarial-note">
+            Risk tier determined by actuarial factor tables (NCD grade, accidents, violations, driver profile).
+            No probabilistic classification — this is a rules-based decision.
           </div>
         </div>
       </div>
@@ -443,6 +450,7 @@ interface TrainResult {
     .fi-bar-wrap { flex:1; background:var(--color-background-secondary); border-radius:4px; height:8px; overflow:hidden; }
     .fi-bar { height:100%; border-radius:4px; background:#2E75B6; }
     .fi-pct { width:36px; font-size:11px; color:var(--color-text-secondary); text-align:right; }
+    .actuarial-note { font-size:13px; color:var(--color-text-secondary); line-height:1.6; padding:12px 14px; background:var(--color-background-secondary); border-radius:8px; border-left:3px solid #2E75B6; }
   `],
 })
 export class RatingEngineComponent implements OnInit {
