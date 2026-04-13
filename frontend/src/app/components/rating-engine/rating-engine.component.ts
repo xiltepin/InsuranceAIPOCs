@@ -262,7 +262,7 @@ interface TrainResult {
           <span class="mode-tag">{{ result.mode }}</span>
         </h2>
         <div class="tier-badge" [class]="tierClass(result.risk_tier)">{{ result.risk_tier }} Risk</div>
-        <div class="premium-row">
+        <div class="premium-row" *ngIf="result.mode === 'hybrid'">
           <div class="premium-block">
             <span class="prem-lbl">年間保険料 Annual</span>
             <span class="prem-val">¥{{ result.annual_premium_jpy | number:'1.0-0' }}</span>
@@ -285,7 +285,7 @@ interface TrainResult {
             <span class="hb-weight">weight {{ ((result.blend_weights?.rf || 0) * 100).toFixed(0) }}% · confidence {{ ((result.rf_confidence || 0) * 100).toFixed(0) }}%</span>
           </div>
         </div>
-        <div class="breakdown" *ngIf="result.excel_breakdown">
+        <div class="breakdown" *ngIf="result.mode === 'hybrid' && result.excel_breakdown">
           <div class="bd-lbl">Coverage breakdown (NCD等級{{ result.excel_breakdown.ncd_grade }} · クラス{{ result.excel_breakdown.vehicle_class }})</div>
           <div class="bd-row" *ngFor="let item of breakdownRows()">
             <span class="bd-name">{{ item.name }}</span>
@@ -451,20 +451,20 @@ export class RatingEngineComponent implements OnInit {
     ncd_grade: 14, age_condition: '35+', prefecture_code: '13',
     vehicle_rating_class: 7, driver_restriction: 'spouse',
     annual_km_band: '10,001〜15,000', driver_age: 38,
-    num_accidents: 0, num_violations: 0, years_licensed: 20, mode: 'hybrid',
+    num_accidents: 0, num_violations: 0, years_licensed: 20, mode: 'rf_only',
   };
 
   modes = [
-    { key: 'hybrid',     label: 'Hybrid'     },
-    { key: 'excel_only', label: 'Excel only'  },
-    { key: 'rf_only',    label: 'RF only'     },
+    { key: 'rf_only',    label: 'Random Forest' },
+    { key: 'excel_only', label: 'Excel'          },
+    { key: 'hybrid',     label: 'Hybrid (with premium)' },
   ];
 
   get modeDesc(): string {
     const d: Record<string,string> = {
-      hybrid:     'Excel 70% + RF 30% blended — recommended',
+      rf_only:    'Random Forest risk classification',
       excel_only: 'Pure actuarial chain — fully auditable',
-      rf_only:    'Random Forest alone — experimental',
+      hybrid:     'Excel 70% + RF 30% blended with premium pricing',
     };
     return d[this.form.mode] || '';
   }

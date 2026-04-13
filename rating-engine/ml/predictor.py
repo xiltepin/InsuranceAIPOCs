@@ -41,6 +41,62 @@ def is_model_ready():  return MODEL_PATH.exists()
 def is_excel_ready():  return EXCEL_PATH.exists()
 
 
+def _excel_risk_tier(inputs: dict, excel_result: dict):
+    """
+    Multi-factor risk scoring for Excel mode.
+    The Excel workbook has no accident/violation tables, so we compute
+    a risk score from all available driver & policy attributes.
+    Returns (tier_label, probability_dict).
+    """
+    score = 0.0  # 0 = safest, 100 = most dangerous
+
+    # --- Accident history (heaviest weight: 0-60 pts) ---
+    accidents  = int(inputs.get("num_accidents", 0))
+    score += min(accidents * 15, 60)
+
+    # --- Violations (0-18 pts) ---
+    violations = int(inputs.get("num_violations", 0))
+    score += min(violations * 6, 18)
+
+    # --- Premium level as proxy for vehicle/coverage risk (0-12 pts) ---
+    prem = excel_result["annual_premium_jpy"]
+    if   prem >= 250000: score += 12
+    elif prem >= 180000: score += 9
+    elif prem >= 120000: score += 6
+    elif prem >= 80000:  score += 3
+
+    # --- NCD grade (grade 1-5 = penalty zone → more risk) (0-6 pts) ---
+    ncd = int(inputs.get("ncd_grade", 6))
+    if   ncd <= 2:  score += 6
+    elif ncd <= 5:  score += 4
+    elif ncd <= 8:  score += 2
+
+    # --- Driver experience (0-4 pts) ---
+    years = int(inputs.get("years_licensed", 10))
+    age   = int(inputs.get("driver_age", 35))
+    if years < 3:              score += 2
+    if age < 25:               score += 2
+
+    # --- Map score to tier ---
+    if   score >= 45:  tier = "Very High"
+    elif score >= 25:  tier = "High"
+    elif score >= 10:  tier = "Medium"
+    else:              tier = "Low"
+
+    # --- Synthetic probabilities for the UI probability bars ---
+    import math
+    raw = {
+        "Low":       max(0, 50 - score) / 50,
+        "Medium":    math.exp(-0.5 * ((score - 15) / 12) ** 2),
+        "High":      math.exp(-0.5 * ((score - 35) / 12) ** 2),
+        "Very High": min(1, max(0, score - 30) / 40),
+    }
+    total = sum(raw.values()) or 1
+    probs = {k: round(v / total, 4) for k, v in raw.items()}
+
+    return tier, probs
+
+
 def predict(inputs: dict, mode: str = "hybrid") -> dict:
     ef = _load_excel()
 
@@ -49,21 +105,12 @@ def predict(inputs: dict, mode: str = "hybrid") -> dict:
         excel_result = excel_calculate_premium(inputs, ef)
 
     if mode == "excel_only":
-        prem = excel_result["annual_premium_jpy"]
-        # Derive a simple risk tier from the premium level
-        if prem < 80000:
-            tier = "Low"
-        elif prem < 140000:
-            tier = "Medium"
-        elif prem < 220000:
-            tier = "High"
-        else:
-            tier = "Very High"
+        tier, probs = _excel_risk_tier(inputs, excel_result)
         return {
             **excel_result,
             "mode":               "excel_only",
             "risk_tier":          tier,
-            "risk_probabilities": {},   # no RF probs in this mode
+            "risk_probabilities": probs,
             "excel_breakdown": {
                 "bi_premium":        excel_result["bi_premium"],
                 "pd_premium":        excel_result["pd_premium"],
