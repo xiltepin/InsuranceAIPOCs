@@ -150,7 +150,7 @@ interface TrainResult {
         {{ uploading ? 'Uploading...' : '↑ Upload rating manual' }}
       </label>
 
-      <select class="sample-select" [(ngModel)]="selectedSamples" [disabled]="training || !dbStatus.available">
+      <select class="sample-select" [(ngModel)]="selectedSamples" [disabled]="training">
         <option [ngValue]="1000">1,000 rows</option>
         <option [ngValue]="10000">10,000 rows</option>
         <option [ngValue]="100000">100,000 rows</option>
@@ -248,7 +248,7 @@ interface TrainResult {
         </label>
       </div>
 
-      <button class="btn-primary" (click)="predict()" [disabled]="!canPredict || loading">
+      <button class="btn-primary" (click)="predict()" [disabled]="loading">
         {{ loading ? '計算中... Calculating...' : '保険料を算定する — Calculate premium' }}
       </button>
       <div *ngIf="errorMsg" class="error-msg">{{ errorMsg }}</div>
@@ -609,7 +609,7 @@ export class RatingEngineComponent implements OnInit {
     }
 
     const source    = this.dbStatus.available ? 'database' : 'synthetic';
-    const n_samples = this.dbStatus.available ? this.selectedSamples : 10000;
+    const n_samples = this.selectedSamples;
     const url       = `${API}/train/stream?n_samples=${n_samples}&source=${source}`;
 
     const es = new EventSource(url);
@@ -648,7 +648,7 @@ export class RatingEngineComponent implements OnInit {
         es.close();
         this.training        = false;
         this.trainProgress   = 0;
-        this.trainPhaseLabel = '';
+        this.trainPhaseLabel = 'Connection failed (is backend running at ' + API + '?)';
         this.cdr.detectChanges();
       });
     };
