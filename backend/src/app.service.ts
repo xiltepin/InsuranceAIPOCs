@@ -45,7 +45,7 @@ export class AppService {
       console.log('==========================================');
 
       return new Promise((resolve, reject) => {
-        const pythonProcess = spawn('C:\\Python313\\python.exe', [ocrScriptPath, absoluteImagePath]);
+        const pythonProcess = spawn(process.env.PYTHON_PATH || 'python3', [ocrScriptPath, absoluteImagePath]);
 
         let stdout = '';
         let stderr = '';
@@ -124,7 +124,7 @@ export class AppService {
       console.log('==========================================');
 
       return new Promise((resolve, reject) => {
-        const pythonProcess = spawn('C:\\Python313\\python.exe', [ocrScriptPath, '--raw-text', rawText]);
+        const pythonProcess = spawn(process.env.PYTHON_PATH || 'python3', [ocrScriptPath, '--raw-text', rawText]);
 
         let stdout = '';
         let stderr = '';
