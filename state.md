@@ -9,6 +9,7 @@
 - [x] Task-2: Synchronize `backend` data models with the `rating-engine` pipeline specifications.
 - [ ] Task-3: Build microservice communication routes inside `docker-compose.yml`.
 - [ ] Task-4: Standardize CSS design language and theme across all frontend applications.
+- [ ] Task-5: Fix backend Python OCR spawn error (hardcoded Windows path).
 
 ## Agent Communication Stream
 - **[System Logging]:** Task-2 complete. Backend data models successfully synchronized with rating-engine APIs. Ready for next task.
