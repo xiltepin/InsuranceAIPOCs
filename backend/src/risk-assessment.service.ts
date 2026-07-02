@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { IoTIntegrationService } from './iot-integration.service';
 import { PricingEngineService } from './pricing-engine.service';
+import { HttpService } from '@nestjs/axios';
+import { lastValueFrom } from 'rxjs';
 
 interface RiskScoreDto {
   driverId: string;
@@ -21,13 +23,53 @@ interface RiskScoreDto {
 @Injectable()
 export class RiskAssessmentService {
   private driverBehaviorCache = new Map<string, any[]>();
+  private readonly logger = new Logger(RiskAssessmentService.name);
 
   constructor(
     private iotService: IoTIntegrationService,
     private pricingEngine: PricingEngineService,
+    private httpService: HttpService,
   ) {}
 
   async calculateRiskScore(profile: any): Promise<RiskScoreDto> {
+    let annual_km_band = '10,001〜15,000';
+    const mileage = profile.annualMileage || 12000;
+    if (mileage <= 5000) annual_km_band = '〜5,000';
+    else if (mileage <= 10000) annual_km_band = '5,001〜10,000';
+    else if (mileage <= 15000) annual_km_band = '10,001〜15,000';
+    else if (mileage <= 20000) annual_km_band = '15,001〜20,000';
+    else annual_km_band = '20,001〜';
+
+    let yearsLicensed = 10;
+    if (profile.licenseIssueDate) {
+      yearsLicensed = Math.floor((new Date().getTime() - new Date(profile.licenseIssueDate).getTime()) / (1000 * 60 * 60 * 24 * 365));
+      if (yearsLicensed < 0) yearsLicensed = 0;
+    }
+
+    const ratingRequest = {
+      ncd_grade: profile.ncdGrade || 6,
+      age_condition: '26+',
+      prefecture_code: profile.prefectureCode || '13',
+      vehicle_rating_class: profile.vehicleRatingClass || 5,
+      driver_restriction: profile.driverRestriction || 'none',
+      annual_km_band: annual_km_band,
+      driver_age: profile.age || 35,
+      num_accidents: profile.previousAccidents || 0,
+      num_violations: profile.numViolations || 0,
+      years_licensed: yearsLicensed,
+      mode: 'hybrid'
+    };
+
+    let mlData: any = null;
+    try {
+      const response = await lastValueFrom(
+        this.httpService.post('http://localhost:8000/predict', ratingRequest)
+      );
+      mlData = response.data;
+    } catch (error) {
+      this.logger.warn(`Failed to call rating-engine ML API: ${error.message}. Falling back to local logic.`);
+    }
+
     const ageRisk = this.calculateAgeRisk(profile.age);
     const experienceRisk = this.calculateExperienceRisk(profile.licenseIssueDate);
     const vehicleRisk = this.calculateVehicleRisk(profile.vehicleType);
@@ -43,15 +85,23 @@ export class RiskAssessmentService {
     );
 
     const riskScore = Math.round(totalRisk * 100);
-    const riskCategory = this.getRiskCategory(riskScore);
+    const riskCategory = mlData?.risk_tier ? mlData.risk_tier.toLowerCase().replace(' ', '-') : this.getRiskCategory(riskScore);
     const basePremium = 50000;
-    const adjustedPremium = this.pricingEngine.calculatePremium(riskScore, basePremium);
+    
+    // If ML data is available, use its premium, otherwise fallback to local pricing engine
+    let adjustedPremium = basePremium;
+    if (mlData?.annual_premium_jpy) {
+       adjustedPremium = mlData.annual_premium_jpy;
+    } else {
+       adjustedPremium = this.pricingEngine.calculatePremium(riskScore, basePremium);
+    }
+    
     const discount = Math.max(0, basePremium - adjustedPremium);
 
     return {
       driverId: profile.driverId,
       riskScore,
-      riskCategory,
+      riskCategory: riskCategory as any,
       factors: {
         ageRisk: Math.round(ageRisk * 100),
         experienceRisk: Math.round(experienceRisk * 100),

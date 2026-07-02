@@ -6,6 +6,11 @@ export class DriverProfileDto {
   vehicleType: 'kei' | 'standard' | 'large';
   annualMileage?: number;
   previousAccidents?: number;
+  ncdGrade?: number;
+  prefectureCode?: string;
+  vehicleRatingClass?: number;
+  driverRestriction?: 'none' | 'family' | 'spouse' | 'self';
+  numViolations?: number;
 }
 
 export class DrivingBehaviorDto {

@@ -1,5 +1,6 @@
 import { RatingModule } from './rating/rating.module';
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -13,6 +14,7 @@ import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
+    HttpModule,
     RatingModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
