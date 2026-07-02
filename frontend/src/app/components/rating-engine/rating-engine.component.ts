@@ -129,7 +129,7 @@ interface TrainResult {
 
   <!-- ── Header ── -->
   <div class="re-header">
-    <h1>Japan Auto Insurance Rating Engine</h1>
+    <h1>Japan Auto Underwriting</h1>
     <p class="subtitle">
       自動車保険料率算定 &nbsp;·&nbsp; Hybrid: Excel Actuarial + Random Forest
     </p>
@@ -145,7 +145,7 @@ interface TrainResult {
         DB {{ dbStatus.available ? (dbStatus.total_rows | number) + ' rows' : 'not connected' }}
       </span>
 
-      <label class="btn-upload">
+      <label class="btn-upload" style="display: none;">
         <input type="file" accept=".xlsx" (change)="onExcelFile($event)" style="display:none">
         {{ uploading ? 'Uploading...' : '↑ Upload rating manual' }}
       </label>
@@ -249,7 +249,7 @@ interface TrainResult {
       </div>
 
       <button class="btn-primary" (click)="predict()" [disabled]="loading">
-        {{ loading ? '計算中... Calculating...' : '保険料を算定する — Calculate premium' }}
+        {{ loading ? '計算中... Calculating...' : 'リスクを評価する — Calculate Risk' }}
       </button>
       <div *ngIf="errorMsg" class="error-msg">{{ errorMsg }}</div>
     </div>
@@ -316,8 +316,6 @@ interface TrainResult {
         <h2>モデル情報 — Model metrics</h2>
         <div class="metrics-grid">
           <div class="metric"><span class="m-lbl">Accuracy</span><span class="m-val">{{ (modelInfo.metrics.classification.accuracy * 100).toFixed(1) }}%</span></div>
-          <div class="metric"><span class="m-lbl">Premium R²</span><span class="m-val">{{ modelInfo.metrics.regression.r2.toFixed(3) }}</span></div>
-          <div class="metric"><span class="m-lbl">Premium MAE</span><span class="m-val">¥{{ modelInfo.metrics.regression.mae | number:'1.0-0' }}</span></div>
           <div class="metric"><span class="m-lbl">Training set</span><span class="m-val">{{ modelInfo.training_samples | number }}</span></div>
           <div class="metric"><span class="m-lbl">Source</span><span class="m-val">{{ modelInfo.training_source || 'synthetic' }}</span></div>
           <div class="metric"><span class="m-lbl">Features</span><span class="m-val">{{ modelInfo.feature_names.length }}</span></div>
@@ -464,8 +462,6 @@ export class RatingEngineComponent implements OnInit {
 
   modes = [
     { key: 'rf_only',    label: 'Random Forest' },
-    { key: 'excel_only', label: 'Excel'          },
-    { key: 'hybrid',     label: 'Hybrid (with premium)' },
   ];
 
   get modeDesc(): string {
