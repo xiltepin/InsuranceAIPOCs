@@ -316,7 +316,7 @@ class FastInsuranceExtractor:
             fast_mode = os.getenv('OLLAMA_FAST_MODE', '0') == '1'
         except Exception:
             fast_mode = False
-        default_cap = 700 if fast_mode else 1000
+        default_cap = 1500 if fast_mode else 4000
         max_length = min(default_cap, len(cleaned_text))  # Cap prompt length
         text_snippet = cleaned_text[:max_length]
         
@@ -400,7 +400,7 @@ COVERAGE LIMITS:
 Return JSON with this EXACT structure:
 {{"policy_number":"","effective_dates":{{"start":"","end":""}},"policyholder_details":{{"full_name":"","address":"","city_state_zip":"","phone":"","email":"","dob":"","gender":"","marital_status":""}},"policy_information":{{"policy_type":"","issue_date":"","term_length":"","renewal_date":"","agent":"","agent_id":"","office_phone":""}},"insured_vehicle":{{"year":"","make":"","model":"","vin":"","license_plate":"","body_type":"","usage_class":"","mileage":"","garage_zip":""}},"driver_profile":{{"primary_driver":"","license_no":"","license_date":"","license_status":"","age_group":"","driving_record":"","relationship":""}},"billing":{{"payment_method":"","payment_plan":"","monthly_amount":"","next_due_date":"","bank_account":"","total_premium":"","payment_status":""}},"discounts":{{"good_driver":"","multi_policy":"","vehicle_safety":"","defensive_driving":"","federal_employee":"","total_savings":""}},"coverage_limits":[]}}
 
-Match patterns exactly as they appear after the labels. Return only JSON."""
+Match patterns exactly as they appear after the labels. Wrap the JSON response in a markdown code block using ```json and ```. Do not add any text before or after the code block."""
         
         return prompt
     
@@ -409,7 +409,6 @@ Match patterns exactly as they appear after the labels. Return only JSON."""
         lines = raw_text.split('\n')
         important_lines = []
         
-        # Keywords that indicate important insurance information (generic patterns only)
         important_keywords = [
             'policy', 'effective', 'policyholder', 'insured', 'vehicle', 
             'year', 'make', 'model', 'vin', 'phone', 'address', 'name', 'full name',
@@ -417,7 +416,8 @@ Match patterns exactly as they appear after the labels. Return only JSON."""
             'term', 'renewal', 'agent', 'producer', 'broker', 'office',
             'license', 'plate', 'body', 'usage', 'mileage', 'garage', 'garaging',
             'months', 'date', 'zip', 'gender', 'married', 'single', 'email',
-            'named', 'expiration', 'birth', 'automobile', 'farm'
+            'named', 'expiration', 'birth', 'automobile', 'farm',
+            'driver', 'profile', 'billing', 'discount', 'payment', 'due', 'total', 'savings'
         ]
         
         for line in lines:
@@ -438,11 +438,10 @@ Match patterns exactly as they appear after the labels. Return only JSON."""
     
     def fast_ollama_call(self, prompt):
         """Highly optimized Ollama API call with improved context and parameters"""
-        url = os.getenv('OLLAMA_URL', 'http://host.docker.internal:11434') + '/api/generate'
+        url = os.getenv('OLLAMA_URL', 'http://host.docker.internal:11434') + '/api/chat'
         
         # Log the actual prompt being sent for debugging
-        print(f"[INFO] Sending prompt to Ollama (length: {len(prompt)} chars)", file=sys.stderr)
-        print(f"[DEBUG] Prompt preview: {prompt[:200]}...", file=sys.stderr)
+        print(f"[INFO] Sending prompt to Ollama Chat (length: {len(prompt)} chars)", file=sys.stderr)
         
         # Support an opt-in fast mode that lowers latency by reducing
         # num_predict/num_ctx and prompt length. This is disabled by default
@@ -454,11 +453,11 @@ Match patterns exactly as they appear after the labels. Return only JSON."""
 
         if fast_mode:
             options = {
-                "temperature": 0.0,
-                "num_predict": 300,
-                "num_ctx": 2048,
+                "temperature": 0.1,
+                "num_predict": 600,
+                "num_ctx": 4096,
                 "num_gpu": 99,
-                "repeat_penalty": 1.0,
+                "repeat_penalty": 1.15,
                 "top_p": 0.15,
                 "top_k": 40
             }
@@ -466,19 +465,28 @@ Match patterns exactly as they appear after the labels. Return only JSON."""
             print(f"[INFO] Ollama FAST mode enabled: num_predict={options['num_predict']}, num_ctx={options['num_ctx']}, timeout={timeout_seconds}s", file=sys.stderr)
         else:
             options = {
-                "temperature": 0.0,   # Zero temperature for deterministic output
-                "num_predict": 600,   # Increased for more complete field extraction
-                "num_ctx": 4096,     # Increased context size to handle larger prompts
-                "num_gpu": 99,       # Use all GPU layers
-                "repeat_penalty": 1.0,
-                "top_p": 0.2,        # Slightly increased for better field matching
-                "top_k": 20          # Increased for better vocabulary access
+                "temperature": 0.1,
+                "num_predict": 8192,  # Increased to prevent truncation even with verbose thinking
+                "num_ctx": 16384,     # Increased context size to avoid hitting the context limit
+                "num_gpu": 99,        # Use all GPU layers
+                "repeat_penalty": 1.15,
+                "top_p": 0.2,         # Slightly increased for better field matching
+                "top_k": 20           # Increased for better vocabulary access
             }
-            timeout_seconds = int(os.getenv('OLLAMA_TIMEOUT', '120'))
+            timeout_seconds = int(os.getenv('OLLAMA_TIMEOUT', '420')) # Increased timeout for longer generation
 
         payload = {
             "model": os.getenv('OLLAMA_MODEL', 'gemma4:12b'),
-            "prompt": prompt,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a precise data extraction assistant. You extract structured JSON from OCR text based on user instructions."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
             "stream": False,
             "options": options
         }
@@ -489,8 +497,13 @@ Match patterns exactly as they appear after the labels. Return only JSON."""
         resp.raise_for_status()
         
         response_data = resp.json()
-        content = response_data.get('response', '')
+        message = response_data.get('message', {})
+        content = message.get('content', '')
         
+        thinking = message.get('thinking', '')
+        if thinking:
+            print(f"[INFO] Ollama thinking process logged ({len(thinking)} chars)", file=sys.stderr)
+            
         return content
     
     def parse_json_response(self, content):

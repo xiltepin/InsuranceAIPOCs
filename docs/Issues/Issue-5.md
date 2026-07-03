@@ -47,7 +47,7 @@ ANGULAR SERVICE: Error message: Http failure response for https://poc.xiltepin.m
 4. Once completed, a human must verify the unit testing completion before this issue can be flagged as completed.
 
 ## Verification
-- [ ] Unit testing finalized
+- [x] Unit testing finalized
 - [ ] Human verification confirmed
 
 ##Latest Status
@@ -454,3 +454,12 @@ download https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_mobile_v2.0_cl
 }
 ╭─ ~/projects/pocs/AIG/InsuranceAIPOCs  main !2 ?2 ────────────────────────────── ✔  19s  root@aig  02:51:51 ─╮
 ╰─                                                                                                               ─╯
+
+## Latest Update
+**Date/Time:** 2026-07-03 03:26 JST
+**Current Progress:** Successfully finalized unit testing inside the `insurance_backend` container on the correct target PDF `docs/sample_insurance_policy.pdf`.
+- Resolved PaddleOCR spawn paths and numpy dependency conflicts.
+- Migrated Ollama API calls from `/api/generate` to `/api/chat` to fully leverage `gemma4:12b` thinking capabilities, avoiding truncation and generation looping.
+- Expanded the extraction schema to cover all fields: policy details, policy information, insured vehicle, driver profile, discounts, billing, and coverage limits.
+- The OCR script successfully output the complete, correctly structured JSON with all target fields populated.
+**Next Steps:** Wait for human interaction to verify frontend integration before closure.
