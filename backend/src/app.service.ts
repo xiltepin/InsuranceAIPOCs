@@ -46,7 +46,7 @@ export class AppService {
       console.log('==========================================');
 
       return new Promise((resolve, reject) => {
-        const pythonCmd = os.platform() === 'win32' ? (process.env.PYTHON_PATH || 'python') : 'python3';
+        const pythonCmd = this.getPythonCommand();
         const pythonProcess = spawn(pythonCmd, [ocrScriptPath, absoluteImagePath]);
 
         let stdout = '';
@@ -126,7 +126,7 @@ export class AppService {
       console.log('==========================================');
 
       return new Promise((resolve, reject) => {
-        const pythonCmd = os.platform() === 'win32' ? (process.env.PYTHON_PATH || 'python') : 'python3';
+        const pythonCmd = this.getPythonCommand();
         const pythonProcess = spawn(pythonCmd, [ocrScriptPath, '--raw-text', rawText]);
 
         let stdout = '';
@@ -185,4 +185,22 @@ export class AppService {
         });
       });
     }
+
+  private getPythonCommand(): string {
+    const platform = os.platform();
+    const envPath = process.env.PYTHON_PATH;
+
+    if (platform === 'win32') {
+      return envPath || 'python';
+    }
+
+    // On non-Windows platforms, only use PYTHON_PATH if it is not a Windows-style path
+    // (doesn't contain backslashes or start with a drive letter)
+    const isWindowsPath = envPath && (envPath.includes('\\') || /^[a-zA-Z]:/.test(envPath));
+    if (envPath && !isWindowsPath) {
+      return envPath;
+    }
+
+    return 'python3';
+  }
 }
