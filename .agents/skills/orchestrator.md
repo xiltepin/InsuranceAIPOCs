@@ -1,7 +1,7 @@
 # Dual-Agent Handshake Loop
 
 ## Rule 1: The Blueprint Freeze
-Whenever a task requires changes across `backend/` or `rating-engine/`, **@architect** must act first.
+Whenever an issue requires changes across `backend/` or `rating-engine/`, **@architect** must act first.
 - @architect reads `complete_integration_manual.md`.
 - @architect writes or updates a local `docs/ARCHITECTURE.md` showing file modifications.
 - @architect logs the architectural sign-off into `state.md` and changes `Active System Process` to `DEVELOPER_READY`.

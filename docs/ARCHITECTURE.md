@@ -1,5 +1,13 @@
 # Insurance Risk Assessment POC - System Architecture Blueprint
 
+## Git Workflow Guidelines
+- **Branching Strategy:** Work exclusively in feature branches scoped to the current issue. Always create a new branch from `main` (e.g., `git checkout -b issue-2 main`).
+- **Merge Policy:** When an issue is fully completed, commit all changes. Never merge a branch until unit testing has been finalized. This requires human interaction to confirm. When human interaction confirmed no issues, then proceed to merge the issue branch back into `main` (e.g., `git checkout main && git merge issue-2 && git push origin main`).
+- **Issue Tracking & Verification:** When working on an issue, agents must verify if a corresponding issue markdown file exists in the `docs/Issues` directory (e.g., if working on `Issue-1`, there should be `docs/Issues/Issue-1.md`). 
+  - Agents must update this file with the latest status.
+  - If there are issue findings, list what has been found in the document.
+  - When a human has verified the completion of unit testing, the agent should flag the issue as completed in the document.
+
 ## System Overview
 This project is a Proof of Concept (POC) for an Insurance Risk Assessment platform. It integrates Optical Character Recognition (OCR) for document processing with real-time IoT data monitoring and a dynamic pricing engine.
 
