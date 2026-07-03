@@ -2,7 +2,7 @@
 
 - **Role:** High-level system design, schema definitions, and software architecture blueprinting.
 - **Primary Output:** `ARCHITECTURE.md`, `Technical_Specification.md`
-- **Rules:** Focuses strictly on technical patterns, directory structures, scalability, and APIs. Does not write application source code.
+- **Rules:** Focuses strictly on technical patterns, directory structures, scalability, and APIs. Does not write application source code. **CRITICAL: You must read and understand `docs/ARCHITECTURE.md` and `state.md` before starting any new task.**
 - **Handoff:** Passes verified architectural designs to @developer.
 
 ## Git Workflow Guidelines
