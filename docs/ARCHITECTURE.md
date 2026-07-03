@@ -4,10 +4,19 @@
 This project is a Proof of Concept (POC) for an Insurance Risk Assessment platform. It integrates Optical Character Recognition (OCR) for document processing with real-time IoT data monitoring and a dynamic pricing engine.
 
 ## Containerization & Infrastructure
-The entire application stack is fully containerized and runs within a Docker environment (hosted within an LXC container on Proxmox). 
-- Services communicate over a bridged Docker network.
-- Environment variables (`.env`) control cross-container communication (e.g., `RATING_ENGINE_URL=http://rating-engine:8000`).
-- Strict environment path handling is enforced (e.g., the NestJS backend must dynamically resolve local paths like `python3` instead of inheriting forwarded Windows `PYTHON_PATH` variables via SSH).
+The entire application stack is fully containerized and orchestrated via `docker-compose.yml`. It defines four main services communicating over a bridged Docker network:
+
+- **Postgres Database (`postgres`):** Runs `postgres:16`. Data is persisted via a named Docker volume (`pgdata`). Healthchecks are enabled to ensure DB readiness. Port 5432 is exposed to the host as 5433 to avoid conflicts.
+- **Frontend Container (`frontend`):** A multi-stage build. 
+  - *Stage 1:* Node.js 20 Alpine handles dependency installation and builds the Angular application.
+  - *Stage 2:* NGINX Alpine serves the compiled static files (`/usr/share/nginx/html`). NGINX is configured to support SPA routing (redirecting to `index.html`), caching strategies, and reverse proxies `/api/` traffic directly to the `backend` container on port 3000. It also uses a runtime environment variable script (`40-env.sh`).
+- **Backend Container (`backend`):** Based on `node:20-slim`. It uniquely acts as a hybrid Node.js and Python environment:
+  - Installs system libraries and Python 3 to support local PaddleOCR execution.
+  - Manages specific Python dependencies (`paddlepaddle==2.6.2`, `numpy<2.0`) to avoid ABI compatibility issues.
+  - Compiles the NestJS application and exposes port 3000. Connects to `postgres`, `rating-engine`, and optionally `OLLAMA` via environment variables.
+- **Rating Engine (`rating-engine`):** A Python-based service that exposes an API on port 8000 for ML predictions, connecting directly to the Postgres database.
+
+Environment variables (`.env`) control cross-container communication (e.g., `RATING_ENGINE_URL=http://rating-engine:8000`). Strict environment path handling is enforced (e.g., the NestJS backend must dynamically resolve local paths like `python3` instead of inheriting forwarded Windows `PYTHON_PATH` variables via SSH). Docker Compose `develop.watch` logic is implemented for rapid local rebuilds and hot-reloads across services.
 
 ## Component Breakdown
 
