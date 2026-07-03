@@ -72,9 +72,9 @@ Return only this JSON structure:
     
     def fast_ollama_call(self, prompt):
         """Optimized Ollama API call for speed"""
-        url = "http://127.0.0.1:11434/api/generate"
+        url = os.getenv('OLLAMA_URL', 'http://host.docker.internal:11434') + '/api/generate'
         payload = {
-            "model": "llama3.2:3b",
+            "model": os.getenv('OLLAMA_MODEL', 'gemma4:12b'),
             "prompt": prompt,
             "stream": False,
             "options": {

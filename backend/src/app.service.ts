@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as path from 'path';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
+import * as os from 'os';
 
 @Injectable()
 export class AppService {
@@ -45,7 +46,8 @@ export class AppService {
       console.log('==========================================');
 
       return new Promise((resolve, reject) => {
-        const pythonProcess = spawn(process.env.PYTHON_PATH || 'python3', [ocrScriptPath, absoluteImagePath]);
+        const pythonCmd = os.platform() === 'win32' ? (process.env.PYTHON_PATH || 'python') : 'python3';
+        const pythonProcess = spawn(pythonCmd, [ocrScriptPath, absoluteImagePath]);
 
         let stdout = '';
         let stderr = '';
@@ -124,7 +126,8 @@ export class AppService {
       console.log('==========================================');
 
       return new Promise((resolve, reject) => {
-        const pythonProcess = spawn(process.env.PYTHON_PATH || 'python3', [ocrScriptPath, '--raw-text', rawText]);
+        const pythonCmd = os.platform() === 'win32' ? (process.env.PYTHON_PATH || 'python') : 'python3';
+        const pythonProcess = spawn(pythonCmd, [ocrScriptPath, '--raw-text', rawText]);
 
         let stdout = '';
         let stderr = '';

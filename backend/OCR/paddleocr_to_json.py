@@ -406,7 +406,7 @@ Match patterns exactly as they appear after the labels. Return only JSON."""
     
     def fast_ollama_call(self, prompt):
         """Highly optimized Ollama API call with improved context and parameters"""
-        url = "http://127.0.0.1:11434/api/generate"
+        url = os.getenv('OLLAMA_URL', 'http://host.docker.internal:11434') + '/api/generate'
         
         # Log the actual prompt being sent for debugging
         print(f"[INFO] Sending prompt to Ollama (length: {len(prompt)} chars)", file=sys.stderr)
@@ -445,7 +445,7 @@ Match patterns exactly as they appear after the labels. Return only JSON."""
             timeout_seconds = int(os.getenv('OLLAMA_TIMEOUT', '120'))
 
         payload = {
-            "model": os.getenv('OLLAMA_MODEL', 'llama3.2:3b'),
+            "model": os.getenv('OLLAMA_MODEL', 'gemma4:12b'),
             "prompt": prompt,
             "stream": False,
             "options": options

@@ -3,6 +3,12 @@
 ## System Overview
 This project is a Proof of Concept (POC) for an Insurance Risk Assessment platform. It integrates Optical Character Recognition (OCR) for document processing with real-time IoT data monitoring and a dynamic pricing engine.
 
+## Containerization & Infrastructure
+The entire application stack is fully containerized and runs within a Docker environment (hosted within an LXC container on Proxmox). 
+- Services communicate over a bridged Docker network.
+- Environment variables (`.env`) control cross-container communication (e.g., `RATING_ENGINE_URL=http://rating-engine:8000`).
+- Strict environment path handling is enforced (e.g., the NestJS backend must dynamically resolve local paths like `python3` instead of inheriting forwarded Windows `PYTHON_PATH` variables via SSH).
+
 ## Component Breakdown
 
 ### 1. Frontend (`/frontend`)
