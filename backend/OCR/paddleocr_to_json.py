@@ -166,9 +166,8 @@ class FastInsuranceExtractor:
         self._ensure_ocr_initialized()
         
         try:
-            # Use the predict method as recommended (replaces deprecated ocr method)
-            # Note: cls parameter not supported in predict method, only use_angle_cls in constructor
-            result = self.ocr.predict(image_path)
+            # Use the ocr method
+            result = self.ocr.ocr(image_path)
         except Exception as e:
             print(f"[ERROR] OCR processing failed: {e}", file=sys.stderr)
             raise
@@ -332,13 +331,13 @@ POLICY LEVEL:
 - policy_number: Text immediately after "Policy Number:" or alphanumeric code starting with letters
 
 EFFECTIVE DATES:
-- start: Date after "Effective Date:", "Effective:" (format: Month Day, Year)
-- end: Date after "Expiration:", "Expiration Date:" or second date after effective
+- start: Date after "Effective Date:", "Effective Start:", "Effective:" (format: Month Day, Year or YYYY-MM-DD)
+- end: Date after "Expiration:", "Effective End:", "Expiration Date:" or second date after effective
 
 POLICYHOLDER DETAILS:
-- full_name: Text after "Full Name:", "Name:", or under "NAMED INSURED" section
+- full_name: Text after "Full Name:", "Name:", or under "NAMED INSURED" / "Policyholder Details" section
 - address: Text after "Address:" label
-- city_state_zip: Text after "City/State/ZIP:", "City/State:", or combine city and state info
+- city_state_zip: Text after "City State Zip:", "City/State/ZIP:", "City/State:", or combine city and state info
 - phone: Phone number pattern after "Phone:" label
 - email: Email address pattern after "Email:" label
 - dob: Date after "DOB:", "Date of Birth:" label
@@ -352,21 +351,54 @@ POLICY INFORMATION:
 - renewal_date: Date after "Renewal Date:" or calculate from effective + term
 - agent: Name after "Agent:" label
 - agent_id: Code/ID after "Agent ID:" label (if available)
-- office_phone: Phone number after "Agent Phone:" or "Office Phone:" label
+- office_phone: Phone number after "Agent Phone:", "Office Phone:" or "Office Phone:" label
 
 INSURED VEHICLE:
-- year: 4-digit year from "Year/Make/Model:" or vehicle description
-- make: Brand name from "Year/Make/Model:" or vehicle description  
-- model: Model name from "Year/Make/Model:" or vehicle description
+- year: 4-digit year from "Vehicle:" or "Year/Make/Model:" description
+- make: Brand name (e.g. Toyota) from "Vehicle:" description  
+- model: Model name (e.g. Camry) from "Vehicle:" description
 - vin: Alphanumeric code after "VIN:" or "VIN Number:"
 - license_plate: Plate number after "License Plate:" label
 - body_type: Vehicle type after "Body Type:" label (if available)
 - usage_class: Text after "Usage:" or "Usage Class:" label
-- mileage: Number + "miles" after "Annual Mileage:" label
-- garage_zip: ZIP code from address or after garaging info
+- mileage: Number + "miles" after "Annual Mileage:" or "Annual Mileage" label
+- garage_zip: ZIP code from garaging location / "Garaging Zip:" or address
+
+DRIVER PROFILE:
+- primary_driver: Full name under "Driver Profile" or primary driver
+- license_no: License Number
+- license_date: License Issue Date (if available)
+- license_status: License Status (e.g. Active, Clean)
+- age_group: Age group description or age
+- driving_record: Driving record info (e.g. violations)
+- relationship: Relationship to policyholder (e.g. Self, Spouse)
+
+BILLING:
+- payment_method: Payment method/source description (e.g., Credit Card ending in 1234)
+- payment_plan: Payment plan / payment frequency (e.g., Paid in Full)
+- monthly_amount: Monthly premium payment amount (if any)
+- next_due_date: Next payment due date (if any)
+- bank_account: Bank account / card info (if any)
+- total_premium: Total Premium amount (e.g. $850.00)
+- payment_status: Payment Status (e.g. Paid in Full)
+
+DISCOUNTS:
+- good_driver: Safe Driver Discount or Good Driver discount value (e.g. -$50.00)
+- multi_policy: Multi-Policy discount value (e.g. -$25.00)
+- vehicle_safety: Vehicle Safety discount value (if any)
+- defensive_driving: Defensive driving discount value (if any)
+- federal_employee: Federal employee discount value (if any)
+- total_savings: Sum/total value of all discounts combined (e.g. -$90.00)
+
+COVERAGE LIMITS:
+- coverage_limits: Array of objects, each containing:
+  - type: Coverage type name (e.g., Bodily Injury Liability, Property Damage Liability, Personal Injury Protection, Uninsured Motorist (BI), Uninsured Motorist (PD), Collision, Comprehensive, Emergency Roadside Service)
+  - limit: Coverage limit amount (e.g. $100,000 / $300,000)
+  - deductible: Deductible amount if any (e.g. $500)
+  - premium: Premium amount for this coverage if any
 
 Return JSON with this EXACT structure:
-{{"policy_number":"","effective_dates":{{"start":"","end":""}},"policyholder_details":{{"full_name":"","address":"","city_state_zip":"","phone":"","email":"","dob":"","gender":"","marital_status":""}},"policy_information":{{"policy_type":"","issue_date":"","term_length":"","renewal_date":"","agent":"","agent_id":"","office_phone":""}},"insured_vehicle":{{"year":"","make":"","model":"","vin":"","license_plate":"","body_type":"","usage_class":"","mileage":"","garage_zip":""}}}}
+{{"policy_number":"","effective_dates":{{"start":"","end":""}},"policyholder_details":{{"full_name":"","address":"","city_state_zip":"","phone":"","email":"","dob":"","gender":"","marital_status":""}},"policy_information":{{"policy_type":"","issue_date":"","term_length":"","renewal_date":"","agent":"","agent_id":"","office_phone":""}},"insured_vehicle":{{"year":"","make":"","model":"","vin":"","license_plate":"","body_type":"","usage_class":"","mileage":"","garage_zip":""}},"driver_profile":{{"primary_driver":"","license_no":"","license_date":"","license_status":"","age_group":"","driving_record":"","relationship":""}},"billing":{{"payment_method":"","payment_plan":"","monthly_amount":"","next_due_date":"","bank_account":"","total_premium":"","payment_status":""}},"discounts":{{"good_driver":"","multi_policy":"","vehicle_safety":"","defensive_driving":"","federal_employee":"","total_savings":""}},"coverage_limits":[]}}
 
 Match patterns exactly as they appear after the labels. Return only JSON."""
         
@@ -534,7 +566,34 @@ Match patterns exactly as they appear after the labels. Return only JSON."""
                     "usage_class": "",
                     "mileage": "",
                     "garage_zip": ""
-                }
+                },
+                "driver_profile": {
+                    "primary_driver": "",
+                    "license_no": "",
+                    "license_date": "",
+                    "license_status": "",
+                    "age_group": "",
+                    "driving_record": "",
+                    "relationship": ""
+                },
+                "billing": {
+                    "payment_method": "",
+                    "payment_plan": "",
+                    "monthly_amount": "",
+                    "next_due_date": "",
+                    "bank_account": "",
+                    "total_premium": "",
+                    "payment_status": ""
+                },
+                "discounts": {
+                    "good_driver": "",
+                    "multi_policy": "",
+                    "vehicle_safety": "",
+                    "defensive_driving": "",
+                    "federal_employee": "",
+                    "total_savings": ""
+                },
+                "coverage_limits": []
             }
     
     def process_document(self, image_path):

@@ -1,7 +1,7 @@
 # Insurance Risk Assessment POC - System Architecture Blueprint
 
 ## Git Workflow Guidelines
-- **Branching Strategy:** Work exclusively in feature branches scoped to the current issue. Always create a new branch from `main` (e.g., `git checkout -b issue-2 main`).
+- **Branching Strategy:** Work exclusively in feature branches scoped to the current issue. **CRITICAL:** Before beginning any work, agents must *always* create and checkout a new branch from `main` named after the issue (e.g., `git checkout -b issue-5 main`). Never make changes on `main` or without an active issue branch.
 - **Merge Policy:** When an issue is fully completed, commit all changes. Never merge a branch until unit testing has been finalized. This requires human interaction to confirm. When human interaction confirmed no issues, then proceed to merge the issue branch back into `main` (e.g., `git checkout main && git merge issue-2 && git push origin main`).
 - **Issue Tracking & Verification:** When working on an issue, agents must verify if a corresponding issue markdown file exists in the `docs/Issues` directory (e.g., if working on `Issue-1`, there should be `docs/Issues/Issue-1.md`). 
   - Agents must update this file with the latest status.
