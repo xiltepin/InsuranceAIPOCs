@@ -6,6 +6,16 @@
 ## Description
 When attempting to upload `docs/sample_insurance_policy.pdf` via the OCRAuto interface at `https://poc.xiltepin.me/OCRAuto`, the system throws errors both on the backend and frontend.
 
+### Expected Outcome
+Once the `docs/sample_insurance_policy.pdf` is successfully scanned without errors, the following fields must be populated automatically:
+- Policyholder Details
+- Policy Information
+- Insured Vehicle
+- Driver Profile
+- Coverage Limits & Deductibles
+- Discounts Applied
+- Billing Information
+
 ### Backend Error Details
 The Python OCR script fails to execute because it was compiled against an older ABI version of NumPy, but is encountering NumPy 2.x during runtime.
 ```text
