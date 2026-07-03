@@ -321,86 +321,16 @@ class FastInsuranceExtractor:
         text_snippet = cleaned_text[:max_length]
         
         # More direct and explicit prompt for better field extraction
-        prompt = f"""Extract data from this insurance document text and return JSON:
+        prompt = f"""Extract data from the OCR text below into the matching JSON structure.
+Keep your thinking/reasoning process extremely brief (less than 2 sentences total).
 
+OCR Text:
 {text_snippet}
 
-Extract these fields into nested JSON structure:
+Return only a valid JSON object matching this structure:
+{{"policy_number":"","effective_dates":{{"start":"","end":""}},"policyholder_details":{{"full_name":"","address":"","city_state_zip":"","phone":"","email":"","dob":"","gender":"","marital_status":""}},"policy_information":{{"policy_type":"","issue_date":"","term_length":"","renewal_date":"","agent":"","agent_id":"","office_phone":""}},"insured_vehicle":{{"year":"","make":"","model":"","vin":"","license_plate":"","body_type":"","usage_class":"","mileage":"","garage_zip":""}}}}
 
-POLICY LEVEL:
-- policy_number: Text immediately after "Policy Number:" or alphanumeric code starting with letters
-
-EFFECTIVE DATES:
-- start: Date after "Effective Date:", "Effective Start:", "Effective:" (format: Month Day, Year or YYYY-MM-DD)
-- end: Date after "Expiration:", "Effective End:", "Expiration Date:" or second date after effective
-
-POLICYHOLDER DETAILS:
-- full_name: Text after "Full Name:", "Name:", or under "NAMED INSURED" / "Policyholder Details" section
-- address: Text after "Address:" label
-- city_state_zip: Text after "City State Zip:", "City/State/ZIP:", "City/State:", or combine city and state info
-- phone: Phone number pattern after "Phone:" label
-- email: Email address pattern after "Email:" label
-- dob: Date after "DOB:", "Date of Birth:" label
-- gender: Text after "Gender:" label
-- marital_status: Text after "Marital Status:" label
-
-POLICY INFORMATION:
-- policy_type: Text after "Policy Type:" label
-- issue_date: Date after "Issue Date:" label (if available)
-- term_length: Text after "Term:" or "Term Length:" label
-- renewal_date: Date after "Renewal Date:" or calculate from effective + term
-- agent: Name after "Agent:" label
-- agent_id: Code/ID after "Agent ID:" label (if available)
-- office_phone: Phone number after "Agent Phone:", "Office Phone:" or "Office Phone:" label
-
-INSURED VEHICLE:
-- year: 4-digit year from "Vehicle:" or "Year/Make/Model:" description
-- make: Brand name (e.g. Toyota) from "Vehicle:" description  
-- model: Model name (e.g. Camry) from "Vehicle:" description
-- vin: Alphanumeric code after "VIN:" or "VIN Number:"
-- license_plate: Plate number after "License Plate:" label
-- body_type: Vehicle type after "Body Type:" label (if available)
-- usage_class: Text after "Usage:" or "Usage Class:" label
-- mileage: Number + "miles" after "Annual Mileage:" or "Annual Mileage" label
-- garage_zip: ZIP code from garaging location / "Garaging Zip:" or address
-
-DRIVER PROFILE:
-- primary_driver: Full name under "Driver Profile" or primary driver
-- license_no: License Number
-- license_date: License Issue Date (if available)
-- license_status: License Status (e.g. Active, Clean)
-- age_group: Age group description or age
-- driving_record: Driving record info (e.g. violations)
-- relationship: Relationship to policyholder (e.g. Self, Spouse)
-
-BILLING:
-- payment_method: Payment method/source description (e.g., Credit Card ending in 1234)
-- payment_plan: Payment plan / payment frequency (e.g., Paid in Full)
-- monthly_amount: Monthly premium payment amount (if any)
-- next_due_date: Next payment due date (if any)
-- bank_account: Bank account / card info (if any)
-- total_premium: Total Premium amount (e.g. $850.00)
-- payment_status: Payment Status (e.g. Paid in Full)
-
-DISCOUNTS:
-- good_driver: Safe Driver Discount or Good Driver discount value (e.g. -$50.00)
-- multi_policy: Multi-Policy discount value (e.g. -$25.00)
-- vehicle_safety: Vehicle Safety discount value (if any)
-- defensive_driving: Defensive driving discount value (if any)
-- federal_employee: Federal employee discount value (if any)
-- total_savings: Sum/total value of all discounts combined (e.g. -$90.00)
-
-COVERAGE LIMITS:
-- coverage_limits: Array of objects, each containing:
-  - type: Coverage type name (e.g., Bodily Injury Liability, Property Damage Liability, Personal Injury Protection, Uninsured Motorist (BI), Uninsured Motorist (PD), Collision, Comprehensive, Emergency Roadside Service)
-  - limit: Coverage limit amount (e.g. $100,000 / $300,000)
-  - deductible: Deductible amount if any (e.g. $500)
-  - premium: Premium amount for this coverage if any
-
-Return JSON with this EXACT structure:
-{{"policy_number":"","effective_dates":{{"start":"","end":""}},"policyholder_details":{{"full_name":"","address":"","city_state_zip":"","phone":"","email":"","dob":"","gender":"","marital_status":""}},"policy_information":{{"policy_type":"","issue_date":"","term_length":"","renewal_date":"","agent":"","agent_id":"","office_phone":""}},"insured_vehicle":{{"year":"","make":"","model":"","vin":"","license_plate":"","body_type":"","usage_class":"","mileage":"","garage_zip":""}},"driver_profile":{{"primary_driver":"","license_no":"","license_date":"","license_status":"","age_group":"","driving_record":"","relationship":""}},"billing":{{"payment_method":"","payment_plan":"","monthly_amount":"","next_due_date":"","bank_account":"","total_premium":"","payment_status":""}},"discounts":{{"good_driver":"","multi_policy":"","vehicle_safety":"","defensive_driving":"","federal_employee":"","total_savings":""}},"coverage_limits":[]}}
-
-Match patterns exactly as they appear after the labels. Wrap the JSON response in a markdown code block using ```json and ```. Do not add any text before or after the code block."""
+Match patterns exactly as they appear in the OCR text. Keep reasoning under 2 sentences, then output the JSON wrapped in ```json and ```. Do not add any other text."""
         
         return prompt
     
@@ -465,15 +395,15 @@ Match patterns exactly as they appear after the labels. Wrap the JSON response i
             print(f"[INFO] Ollama FAST mode enabled: num_predict={options['num_predict']}, num_ctx={options['num_ctx']}, timeout={timeout_seconds}s", file=sys.stderr)
         else:
             options = {
-                "temperature": 0.1,
-                "num_predict": 8192,  # Increased to prevent truncation even with verbose thinking
-                "num_ctx": 16384,     # Increased context size to avoid hitting the context limit
+                "temperature": 0.0,
+                "num_predict": 4096,  # Reduced to prevent excessive thinking while leaving enough room for JSON
+                "num_ctx": 16384,     # Keep high context window
                 "num_gpu": 99,        # Use all GPU layers
-                "repeat_penalty": 1.15,
-                "top_p": 0.2,         # Slightly increased for better field matching
-                "top_k": 20           # Increased for better vocabulary access
+                "repeat_penalty": 1.0, # Disable repeat penalty to speed up generation
+                "top_p": 0.0,         # Deterministic selection
+                "top_k": 1            # Greedy search to make generation extremely fast
             }
-            timeout_seconds = int(os.getenv('OLLAMA_TIMEOUT', '420')) # Increased timeout for longer generation
+            timeout_seconds = int(os.getenv('OLLAMA_TIMEOUT', '420')) # Keep timeout safe
 
         payload = {
             "model": os.getenv('OLLAMA_MODEL', 'gemma4:12b'),
@@ -539,75 +469,121 @@ Match patterns exactly as they appear after the labels. Wrap the JSON response i
             json_content = content
             print(f"[DEBUG] No braces found, using full content", file=sys.stderr)
         
+    def get_fallback_structure(self):
+        """Returns the default empty structure matching Angular frontend expectations"""
+        return {
+            "policy_number": "",
+            "effective_dates": {"start": "", "end": ""},
+            "policyholder_details": {
+                "full_name": "",
+                "address": "",
+                "city_state_zip": "",
+                "phone": "",
+                "email": "",
+                "dob": "",
+                "gender": "",
+                "marital_status": ""
+            },
+            "policy_information": {
+                "policy_type": "",
+                "issue_date": "",
+                "term_length": "",
+                "renewal_date": "",
+                "agent": "",
+                "agent_id": "",
+                "office_phone": ""
+            },
+            "insured_vehicle": {
+                "year": "",
+                "make": "",
+                "model": "",
+                "vin": "",
+                "license_plate": "",
+                "body_type": "",
+                "usage_class": "",
+                "mileage": "",
+                "garage_zip": ""
+            },
+            "driver_profile": {
+                "primary_driver": "",
+                "license_no": "",
+                "license_date": "",
+                "license_status": "",
+                "age_group": "",
+                "driving_record": "",
+                "relationship": ""
+            },
+            "billing": {
+                "payment_method": "",
+                "payment_plan": "",
+                "monthly_amount": "",
+                "next_due_date": "",
+                "bank_account": "",
+                "total_premium": "",
+                "payment_status": ""
+            },
+            "discounts": {
+                "good_driver": "",
+                "multi_policy": "",
+                "vehicle_safety": "",
+                "defensive_driving": "",
+                "federal_employee": "",
+                "total_savings": ""
+            },
+            "coverage_limits": []
+        }
+
+    def parse_json_response(self, content):
+        """Enhanced JSON parsing with better error handling and fallback merging"""
+        original_content = content
+        content = content.strip()
+        
+        # Debug: Print raw AI response (more of it)
+        print(f"[DEBUG] Raw AI response: {content[:500]}...", file=sys.stderr)
+        print(f"[DEBUG] Full response length: {len(content)}", file=sys.stderr)
+        
+        # Find JSON boundaries - look for complete JSON object
+        if '{' in content and '}' in content:
+            start = content.find('{')
+            # Find the matching closing brace
+            brace_count = 0
+            end = len(content)  # Default to end if no matching brace found
+            
+            for i in range(start, len(content)):
+                char = content[i]
+                if char == '{':
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                    if brace_count == 0:
+                        end = i + 1
+                        break
+            
+            json_content = content[start:end]
+            print(f"[DEBUG] Extracted JSON length: {len(json_content)}", file=sys.stderr)
+            print(f"[DEBUG] Extracted JSON: {json_content[:200]}...", file=sys.stderr)
+        else:
+            json_content = content
+            print(f"[DEBUG] No braces found, using full content", file=sys.stderr)
+        
         try:
             parsed = json.loads(json_content)
             print(f"[INFO] Successfully parsed JSON with keys: {list(parsed.keys())}", file=sys.stderr)
+            
+            # Merge with fallback to ensure all required frontend keys are present
+            fallback = self.get_fallback_structure()
+            for key, val in fallback.items():
+                if key not in parsed:
+                    parsed[key] = val
+                elif isinstance(val, dict) and isinstance(parsed[key], dict):
+                    for subkey, subval in val.items():
+                        if subkey not in parsed[key]:
+                            parsed[key][subkey] = subval
             return parsed
         except json.JSONDecodeError as e:
             print(f"[ERROR] JSON parsing failed: {e}", file=sys.stderr)
             print(f"[ERROR] Attempted to parse: {json_content[:200]}...", file=sys.stderr)
-            # Fallback: create structure matching Angular frontend expectations
-            return {
-                "policy_number": "",
-                "effective_dates": {"start": "", "end": ""},
-                "policyholder_details": {
-                    "full_name": "",
-                    "address": "",
-                    "city_state_zip": "",
-                    "phone": "",
-                    "email": "",
-                    "dob": "",
-                    "gender": "",
-                    "marital_status": ""
-                },
-                "policy_information": {
-                    "policy_type": "",
-                    "issue_date": "",
-                    "term_length": "",
-                    "renewal_date": "",
-                    "agent": "",
-                    "agent_id": "",
-                    "office_phone": ""
-                },
-                "insured_vehicle": {
-                    "year": "",
-                    "make": "",
-                    "model": "",
-                    "vin": "",
-                    "license_plate": "",
-                    "body_type": "",
-                    "usage_class": "",
-                    "mileage": "",
-                    "garage_zip": ""
-                },
-                "driver_profile": {
-                    "primary_driver": "",
-                    "license_no": "",
-                    "license_date": "",
-                    "license_status": "",
-                    "age_group": "",
-                    "driving_record": "",
-                    "relationship": ""
-                },
-                "billing": {
-                    "payment_method": "",
-                    "payment_plan": "",
-                    "monthly_amount": "",
-                    "next_due_date": "",
-                    "bank_account": "",
-                    "total_premium": "",
-                    "payment_status": ""
-                },
-                "discounts": {
-                    "good_driver": "",
-                    "multi_policy": "",
-                    "vehicle_safety": "",
-                    "defensive_driving": "",
-                    "federal_employee": "",
-                    "total_savings": ""
-                },
-                "coverage_limits": []
-            }
+            return self.get_fallback_structure()
     
     def process_document(self, image_path):
         """Fast document processing pipeline"""
